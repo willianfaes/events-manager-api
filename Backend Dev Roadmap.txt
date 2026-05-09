@@ -1,0 +1,34 @@
+* Code First: Build the core logic. (Entities, Controllers, Mappers, Pagination, Soft Deletes).
+	Pagination & Sorting:
+	Difficulty: Easy
+	Time: 1–2 days. Spring Data JPA literally has a built-in Pageable object. You just pass it into your repository, and Spring writes the complex SQL limit/offset queries for you.
+
+	Soft Deletes:
+	Difficulty: Easy
+	Time: 1 day. In modern Hibernate (which Spring Boot uses), this is often just adding an @SQLRestriction and @SQLDelete annotation to your entity.
+
+	User Profiles (1-to-1 Relationship):
+	Difficulty: Easy to Medium
+	Time: 2–3 days. This is just practicing JPA relationships (@OneToOne). The logic is straightforward, but setting up the Mappers for it takes a little focus.
+
+	Advanced Filtering (Search):
+	Difficulty: Medium
+	Time: 3–5 days. This is the hardest of the bunch. You will have to learn how to write custom @Query strings or use JPA Specifications to handle situations where a user searches by date, but leaves the category blank.
+
+* Global Exception Handling: Make sure your API returns clean, professional errors instead of massive Java stack traces.
+
+* Testing (JUnit/Mockito): Write tests to prove your code works. (remember CI/CD server will run my tests to then send it to Test server? yeah... my tests must be good!)
+
+* Documentation (Swagger): Add Swagger so a frontend developer knows how to use your API.
+
+* Containerization (Docker): Wrap your app and your MySQL database in Docker so it runs anywhere.
+
+* The Cloud (AWS + CI/CD): Deploy that Docker container to AWS and automate the deployment with GitHub Actions.
+
+Obs: 
+	To deploy your API, you only need to learn three specific AWS services:
+	RDS (Relational Database Service): To host your MySQL database in the cloud.
+	EC2 (Elastic Compute Cloud): To run your Spring Boot .jar file.
+	S3 (Simple Storage Service): Optional, but needed if you want users to upload profile pictures.
+
+* Learn linux basic terminal commands. Maybe something else? 99% of backend servers run on linux! When production server crash, a tech lead expects me to SSH into the Linux server and look at the logs to find the error. If I look like a deer in headlights when the terminal opens... it's a red flag.

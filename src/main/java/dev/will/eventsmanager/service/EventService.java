@@ -1,0 +1,96 @@
+package dev.will.eventsmanager.service;
+
+import dev.will.eventsmanager.dto.request.EventCreateRequest;
+import dev.will.eventsmanager.dto.response.EventRegistrationResponse;
+import dev.will.eventsmanager.dto.response.EventResponse;
+import dev.will.eventsmanager.entity.Event;
+import dev.will.eventsmanager.entity.EventRegistration;
+import dev.will.eventsmanager.entity.User;
+import dev.will.eventsmanager.exceptions.BusinessException;
+import dev.will.eventsmanager.mapper.EventMapper;
+import dev.will.eventsmanager.mapper.EventRegistrationMapper;
+import dev.will.eventsmanager.repository.EventRegistrationsRepository;
+import dev.will.eventsmanager.repository.EventRepository;
+import dev.will.eventsmanager.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+@RequiredArgsConstructor
+@Service
+@Transactional
+public class EventService {
+
+    private final EventMapper eventMapper;
+    private final EventRegistrationMapper eventRegistrationMapper;
+    private final EventRepository eventRepository;
+    private final EventRegistrationsRepository eventRegistrationsRepository;
+    private final UserRepository userRepository;
+
+    public List<Event> findAllEvents() {
+        return Collections.emptyList(); // Stub: returns an empty list
+    }
+
+    public Optional<Event> findEventById(Long id) {
+        return Optional.empty(); // Stub: returns empty optional
+    }
+
+    public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
+        // 1. DTO vira Entidade
+        Event entity = eventMapper.toEntity(eventCreateRequest);
+
+        // 2. Salva no banco de verdade (Agora sim!)
+        Event saved = eventRepository.save(entity);
+
+        // 3. Entidade vira DTO de Resposta
+        return eventMapper.toResponse(saved);
+    }
+
+    public EventRegistrationResponse registerUserForEvent(String userEmail, Long eventId) {
+
+        // 1. Busca o Usuário completo usando o e-mail extraído do Token
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new BusinessException("Usuário não encontrado!"));
+
+        // 2. Busca o Evento completo (afinal, não dá pra se inscrever no que não existe)
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new BusinessException("Evento não encontrado!"));
+
+        // 3. A ÚNICA ida ao banco para checar inscrições usando os IDs
+        Optional<EventRegistration> existingOpt = eventRegistrationsRepository
+                .findByUserIdAndEventIdIncludeDeleted(user.getId(), event.getId());
+
+        // 4. Se achou alguma coisa na caixa...
+        if (existingOpt.isPresent()) {
+            EventRegistration registration = existingOpt.get();
+
+            // O cara tá vivinho da silva?
+            if (!registration.isDeleted()) {
+                throw new BusinessException("Você já está inscrito neste evento!");
+            }
+
+            // Se chegou aqui, é fantasma. REVIVE O CARA!
+            registration.setDeleted(false);
+            return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(registration));
+        }
+
+        // 5. Se a caixa estava vazia, é inscrição 100% nova.
+        EventRegistration newRegistration = new EventRegistration();
+        newRegistration.setUser(user);   // Setamos a entidade User inteira
+        newRegistration.setEvent(event); // Setamos a entidade Event inteira
+
+        // (Se a sua entidade tiver uma data de inscrição, você setaria aqui:
+        // newRegistration.setRegistrationDate(LocalDateTime.now());)
+
+        // Salva no banco, passa no Mapper e devolve pro Controller
+        return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(newRegistration));
+    }
+
+    public void unregisterUserFromEvent(Long eventId, String userEmail) {
+        // Stub: does nothing
+    }
+}
