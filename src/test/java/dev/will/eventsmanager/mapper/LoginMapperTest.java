@@ -1,7 +1,8 @@
 package dev.will.eventsmanager.mapper;
 
-import dev.will.eventsmanager.dto.response.LoginResponse;
-import dev.will.eventsmanager.entity.User;
+import dev.will.eventsmanager.auth.dto.response.LoginResponse;
+import dev.will.eventsmanager.auth.mapper.LoginMapper;
+import dev.will.eventsmanager.users.entity.User;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
