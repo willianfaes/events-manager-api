@@ -1,0 +1,104 @@
+Módulo 1: Domínio Estrutural e Algoritmos (Java Core)
+
+Não se pode julgar o uso de um banco de dados ou a eficiência de um
+algoritmo gerado por IA sem entender como os dados são manipulados na memória da aplicação primeiro.
+
+Generics (<T>): A mecânica de passar tipos como parâmetros. É o requisito base para entender como listas e repositórios
+(como os do Spring Data) funcionam por baixo dos panos.
+
+Java Collections Framework: O domínio das estruturas de dados em memória é vital para evitar algoritmos ineficientes com
+complexidade de tempo O(N2) quando um O(N) seria possível.
+
+    - List (ArrayList, LinkedList): Acesso indexado, aceita duplicatas.
+    - Set (HashSet): Garantia de unicidade, perda de ordenação. Onde a noção básica da notação Big O importa muito
+    (ex: $O(1)$ para buscas).
+
+    - Map (HashMap): Armazenamento em formato chave-valor.Streams API e Lambdas: Manipulação funcional avançada.
+    Essencial para processamento de coleções (filtrar, transformar com map e agregar) sem o uso de blocos for imperativos e contadores.
+
+    - Gestão de Memória e Segurança:
+        Uso estrito de Optional para mitigar NullPointerException.
+        Compreensão básica de concorrência e do uso de memória no Java.
+    - Hierarquia de Exceptions: Entender a diferença técnica e o impacto no código entre:
+
+        Checked Exceptions: Obrigam o uso de blocos try-catch ou repasse na assinatura.
+        Unchecked Exceptions (RuntimeException): Exceções em tempo de execução.
+
+
+
+Módulo 2: O Submundo da Persistência (JPA/Hibernate)
+
+Saber que o JPA converte classes para o banco de dados é apenas o básico. Aqui é onde a maioria das aplicações Spring Boot falha em desempenho.
+
+    - Ciclo de Vida da Entidade: Dominar os estados Transient, Managed, Detached e Removed.
+        Dirty Checking: O Hibernate salva dados no banco automaticamente se você alterar um objeto que está no estado Managed,
+    mesmo sem chamar explicitamente o repository.save().
+
+    - O Problema das N+1 Queries e Proxies: O grande assassino de performance.
+        Como o carregamento Lazy gera dezenas de consultas ocultas em comparação ao Eager Loading.
+        A mecânica dos Proxies do Hibernate nas consultas.
+        Como neutralizar o N+1 usando o comando JOIN FETCH.
+
+    - Mecânica de Transações no Banco de Dados (@Transactional):
+        Entender o conceito ACID (Atomicidade, Consistência, Isolamento e Durabilidade).
+        Compreender o escopo da transação e os níveis de isolamento.
+        Regra nativa do Spring: o rollback automático ocorre apenas para Unchecked Exceptions.
+        Gap Crítico de Auditoria: Saber que a chamada de um método anotado com @Transactional a partir de outro método
+    dentro da mesma classe contorna o proxy do Spring, fazendo com que a transação não seja iniciada.
+
+
+Módulo 3: Arquitetura de Aplicação (Spring, Inversão de Controle e API)
+
+Estruturando as fundações do framework e a comunicação da API HTTP.
+
+    - Injeção de Controle (IoC) e Injeção de Dependência: Não é sobre simplesmente usar os métodos de outra classe (o bom e velho new já permitiria isso).
+    É sobre delegar o lifecycle (ciclo de vida) dos objetos (Beans) ao framework.
+        Benefícios: Baixo acoplamento e facilidade de "mockar" dependências para os testes.
+        Injeção via Construtor vs @Autowired: A comunidade aboliu o uso do @Autowired direto em atributos de classe.
+    A injeção exclusiva por construtor é o que garante a segurança da injeção de dependências falsas (mocks) nos testes.
+
+    - O Ecossistema de Beans: Entender o que é um Bean do tipo Singleton, onde eles estão instanciados no projeto e como estão sendo
+    usados na prática.
+
+    - Tratamento de Erros Global: Ter uma classe anotada com @RestControllerAdvice (a "rede que capta tudo") é o padrão ouro.
+        Nunca permitir que uma Stack Trace vaze para o cliente.
+        Sempre mapear exceções para os códigos HTTP semânticos corretos (ex: 401, 403, 404, 409, 422).
+        Basear as respostas de erro na RFC 7807 (Problem Details for HTTP APIs).
+
+    - Stateless e Tokens: A principal razão técnica para adotar a arquitetura Stateless é garantir que a requisição possa ser processada
+    por qualquer contêiner Docker que esteja rodando a aplicação, permitindo escalabilidade horizontal.
+
+
+Módulo 4: Arquitetura de Código (SOLID e Design Patterns)
+
+O vocabulário técnico e a estrutura necessários para refatorar e ditar a arquitetura do projeto (em vez de aceitar o output cru e monolítico de IAs).
+
+    - Princípios SOLID Aplicados:
+        SRP (Single Responsibility Principle): Foco imediato em quebrar métodos monolíticos para que cada classe/método tenha uma única razão para mudar.
+        DIP (Dependency Inversion Principle): Depender sempre de abstrações (Interfaces), e não de implementações diretas.
+
+    - Padrões de Projeto (Design Patterns):
+        Strategy (Comportamental): Padrão essencial para eliminar o aninhamento excessivo de blocos if/else ou switch quando regras de negócio começam
+    a divergir (ex: cálculos diferentes para ingressos VIP, Normal ou Meia-entrada).
+        Dominar também Factory e Builder para padronizar a criação de objetos complexos.
+
+
+Módulo 5: Ferramental de Auditoria (Testes Automatizados)
+
+A única forma técnica de validar código gerado por IA ou por terceiros sem colocá-lo em produção. Sem testes, qualquer refatoração é uma aposta cega;
+com eles, você ganha métricas de rejeição.
+
+    - Testes Unitários (JUnit 5 + Mockito): Focados em isolar a camada de serviço. Servem para simular (mockar) os retornos da camada de repositório
+    e testar exclusivamente as regras de negócio e o lançamento correto de exceções.
+
+    - Testes de Integração (Testcontainers): A prática de levantar contêineres Docker efêmeros durante o processo de build (mvn clean install).
+    Isso garante que as queries JPA rodem contra um banco PostgreSQL real e não apenas na teoria do código.
+
+
+
+Tópicos Investigativos (Para Pesquisa Ativa)
+
+Você deixou duas perguntas conceituais importantes nas anotações originais que devem ser seus próximos alvos de pesquisa profunda:
+
+    O QUE É: um proxy do Spring? (Especialmente no contexto de transações e carregamento Lazy no Hibernate).
+    O QUE É: coleções no Java? (Entender a fundo o funcionamento interno das interfaces List, Set e Map).
