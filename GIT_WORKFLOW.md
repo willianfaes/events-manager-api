@@ -50,3 +50,12 @@ Quando a funcionalidade for concluída, testada e com os commits organizados:
 3. Clique em "Compare & pull request".
 4. Aguarde a revisão (Code Review) do Tech Lead ou da equipe.
 5. Após aprovação, o código é mesclado (merged) oficialmente na `main`.
+
+## 8. Apagando local branches inuteis e rodando um .mvnw clean install!
+Em começo de expediente voce deve atualizar a main, dar um Pull. Se voce deletou a branch usada no ultimo PR na pagina no GitHub, agora voce deve apagar essas branches localmente:
+1. `git pull origin`
+2. `git fetch --prune` (mostra quais das suas branches foram de fato deletadas no GitHub, apaga o pointer local pra elas)
+3. `git branch -D "path da branch"` (talvez o git reclame dizendo que nao foi dado merge, ai voce precisa usar o -D maiusculo)
+4. `git status` (so para garantir que nao tem arquivo solto no projeto)
+5. `./mvnw clean install` OU `./mvnw clean install -DskipTests` (obrigatorio usar, a nao ser que as mudancas na main tenham sido minimas e bobas... nao confie, builde de novo!)
+6. FIM
