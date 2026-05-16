@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.config;
 
+import dev.will.eventsmanager.auth.SecurityFilter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
