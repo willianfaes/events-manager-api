@@ -34,3 +34,5 @@ Obs:
 * Learn linux basic terminal commands. Maybe something else? 99% of backend servers run on linux! When production server crash, a tech lead expects me to SSH into the Linux server and look at the logs to find the error. If I look like a deer in headlights when the terminal opens... it's a red flag.
 
 * Java code style convention: What tools devs use to check and enforce the Code Convention they are following? Remember: Make sure the final code fully respects the Oracle Java Convention (tho there are other, stick to this one). A professional portfolio follow professional standards!
+
+* Do devs still relly on manual git commands on terminal at the job? What is the current enterprise behaviour regarding DOCKER and GIT terminal code? Rely on manual inputs, or AI? FIND OUT!
