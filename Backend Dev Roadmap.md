@@ -40,3 +40,10 @@ Obs:
 * 🌥️ How to Include AWS Without the Exam
 If you want to show employers you care about the cloud, spend just one weekend deployment-testing. Do not take an exam. Instead, open a free AWS account, take your Dockerized Spring Boot API, and manually deploy it to AWS Elastic Beanstalk or an AWS EC2 instance.
 Adding the line "Successfully deployed a containerized Spring Boot API onto AWS" to your resume will grab a Turin tech recruiter's attention much faster than a theoretical certificate—and it will take you a fraction of the time to achieve.
+
+* 🔨 The "Show, Don't Tell" Strategy for Turin Engineers
+Since your goal is to talk directly to engineers and show them you are not just a "regular student" who only knows theory, your resume and GitHub need to do the talking for you. Italian university CS programs are notoriously heavy on theoretical mathematics and very light on actual coding. !!!!!----** You can exploit this gap.----!!!!!
+When an engineer opens your GitHub in August, here is what will make them say "Wow, this person is ahead of local graduates":
+A Spotless Git History: Since you are comfortable with Git Flow, ensure your portfolio repository doesn't have a single giant commit called "initial commit." Show a clean history of feature branches, descriptive commit messages (e.g., feat: implement user authentication endpoint), and pull requests. Engineers look at commit history to see how you think.
+The "Turin-Specific" Project Idea: Instead of building a generic Todo app, build a REST API that solves a relatable problem. For example: A backend for a "Torino Bike/Scooter Sharing aggregator" or a "University Exam Scheduler."
+An Impressive README: Write your project documentation in flawless English. Include a diagram of your database architecture, a list of your API endpoints, and a quick "How to Run" section using Docker Compose.
