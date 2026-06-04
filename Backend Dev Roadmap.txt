@@ -36,3 +36,7 @@ Obs:
 * Java code style convention: What tools devs use to check and enforce the Code Convention they are following? Remember: Make sure the final code fully respects the Oracle Java Convention (tho there are other, stick to this one). A professional portfolio follow professional standards!
 
 * Do devs still relly on manual git commands on terminal at the job? What is the current enterprise behaviour regarding DOCKER and GIT terminal code? Rely on manual inputs, or AI? FIND OUT!
+
+* 🌥️ How to Include AWS Without the Exam
+If you want to show employers you care about the cloud, spend just one weekend deployment-testing. Do not take an exam. Instead, open a free AWS account, take your Dockerized Spring Boot API, and manually deploy it to AWS Elastic Beanstalk or an AWS EC2 instance.
+Adding the line "Successfully deployed a containerized Spring Boot API onto AWS" to your resume will grab a Turin tech recruiter's attention much faster than a theoretical certificate—and it will take you a fraction of the time to achieve.
