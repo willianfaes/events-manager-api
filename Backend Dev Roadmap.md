@@ -34,8 +34,15 @@ Obs:
 * Learn linux basic terminal commands. Maybe something else? 99% of backend servers run on linux! When production server crash, a tech lead expects me to SSH into the Linux server and look at the logs to find the error. If I look like a deer in headlights when the terminal opens... it's a red flag.
 
 * Java code style convention: What tools devs use to check and enforce the Code Convention they are following? Remember: Make sure the final code fully respects the Oracle Java Convention (tho there are other, stick to this one). A professional portfolio follow professional standards!
+	* ANSWER:
+	* Na IDE: Instalamos o plugin SonarLint e usamos o formatador nativo do IntelliJ (já configurado para o padrão Google ou Oracle).
+	* No CI/CD (GitHub Actions): Usamos plugins como Spotless ou Checkstyle no Maven/Gradle. Se o código não seguir a convenção, a esteira quebra e o Pull Request não é aprovado.
 
 * Do devs still relly on manual git commands on terminal at the job? What is the current enterprise behaviour regarding DOCKER and GIT terminal code? Rely on manual inputs, or AI? FIND OUT!
+	* ANSWER:
+	* Git: Para comandos rápidos e diários (commit, push, pull, checkout), o terminal é o rei pela velocidade. Porém, para resolver conflitos complexos de merge ou analisar o histórico de alterações (diffs), 90% dos devs seniores usam a interface gráfica do próprio IntelliJ ou ferramentas como GitKraken.
+	* Docker: Usamos comandos de terminal básicos (docker ps, docker logs), mas gerenciamos os containers visualmente pelo Docker Desktop.
+	* O papel da IA nisso: Ninguém usa IA para rodar comando de Git. Nós usamos a IA para escrever o arquivo Dockerfile, o docker-compose.yml ou scripts complexos de pipeline no GitHub Actions.
 
 * 🌥️ How to Include AWS Without the Exam
 If you want to show employers you care about the cloud, spend just one weekend deployment-testing. Do not take an exam. Instead, open a free AWS account, take your Dockerized Spring Boot API, and manually deploy it to AWS Elastic Beanstalk or an AWS EC2 instance.
