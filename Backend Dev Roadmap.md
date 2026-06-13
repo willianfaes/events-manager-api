@@ -53,3 +53,31 @@ Write a pure Java program that connects to your Dockerized PostgreSQL database.
 Practice writing raw SQL queries (INSERT, SELECT, UPDATE, DELETE) directly inside your Java code.
 Handle database connection errors properly using Java's try-catch blocks.
 This will give you a flawless transition into July, because Spring Boot handles all of this database connection work automatically behind the scenes. Understanding how it works manually first will make you a much stronger developer.
+
+### 📋 TODO: Fluxo Prático para Criação de Feature com Testes (JUnit 5 + Mockito)
+
+**Objetivo:** Criar a feature garantindo a cobertura dos cenários principais e de erro, usando a estrutura BDD para mapear o comportamento antes da implementação real.
+
+- [ ] **1. Criar a Casca do Código Base (Service)**
+  - [ ] Criar o método apenas com a assinatura (recebendo o DTO e retornando nulo ou vazio).
+  - [ ] Não implementar nenhuma regra de negócio ainda.
+
+- [ ] **2. Criar a Classe de Teste (`ServiceTest`)**
+  - [ ] Anotar a classe com `@ExtendWith(MockitoExtension.class)`.
+  - [ ] Instanciar a classe principal com `@InjectMocks`.
+  - [ ] Mocar as dependências (Repositories, etc.) com `@Mock`.
+
+- [ ] **3. Escrever o Roteiro de Testes (Apenas Assinaturas)**
+  - [ ] Criar os métodos com `@Test` e `@DisplayName("...")` descrevendo exatamente o que deve acontecer. Ex: `deveSalvarComSucesso()`, `deveLancarExcecaoQuandoDadoInvalido()`.
+  - [ ] Dentro de cada método, montar apenas os comentários da estrutura BDD:
+    - `// Given (Dado o cenário X)`
+    - `// When (Quando a ação Y ocorrer)`
+    - `// Then (Então o resultado Z deve ser garantido)`
+
+- [ ] **4. Implementar a Regra de Negócio**
+  - [ ] Voltar na classe Service e codar a lógica real (validações, chamadas ao banco).
+  - [ ] Usar o Debugger se necessário.
+
+- [ ] **5. Preencher os Testes e Validar (O Verificador Final)**
+  - [ ] Voltar na classe de teste e preencher os blocos Given/When/Then com o código real do Mockito (ex: `when(repository.save()).thenReturn(...)`).
+  - [ ] Rodar os testes. Se der verde, a feature está pronta para PR.
