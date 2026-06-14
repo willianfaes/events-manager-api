@@ -54,6 +54,7 @@ When an engineer opens your GitHub in August, here is what will make them say "W
 A Spotless Git History: Since you are comfortable with Git Flow, ensure your portfolio repository doesn't have a single giant commit called "initial commit." Show a clean history of feature branches, descriptive commit messages (e.g., feat: implement user authentication endpoint), and pull requests. Engineers look at commit history to see how you think.
 The "Turin-Specific" Project Idea: Instead of building a generic Todo app, build a REST API that solves a relatable problem. For example: A backend for a "Torino Bike/Scooter Sharing aggregator" or a "University Exam Scheduler."
 An Impressive README: Write your project documentation in flawless English. Include a diagram of your database architecture, a list of your API endpoints, and a quick "How to Run" section using Docker Compose.
+	Colocar uma seção chamada ## 🏗️ Architecture dentro do seu README.md atual. Conforme sua API for ganhando corpo, se aquela seção ficar muito grande, aí sim você extrai ela para um ARCHITECTURE.md próprio.
 
 * Practicing JDBC (Java Database Connectivity) or building simple CLI (Command Line Interface) applications:
 Write a pure Java program that connects to your Dockerized PostgreSQL database.
