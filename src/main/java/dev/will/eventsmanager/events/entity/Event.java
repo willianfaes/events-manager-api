@@ -37,8 +37,10 @@ public class Event {
     @Column(nullable = false)
     private LocalDateTime schedule; // Changed from 'time' to 'schedule' to match SQL
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL) // Or @ManyToOne, depending on your exact relationship
-    @JoinColumn(name = "address_id", nullable = false) // @JoinColumn, not @JoinTable, cause it's an auxiliary table, not a junction one (associative)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
+    // Or @ManyToOne, depending on your exact relationship
+    @JoinColumn(name = "address_id", nullable = false)
+    // @JoinColumn, not @JoinTable, cause it's an auxiliary table, not a junction one (associative)
     private EventAddress address;
 
     @Column(columnDefinition = "TEXT") // Maps to the TEXT type in MySQL

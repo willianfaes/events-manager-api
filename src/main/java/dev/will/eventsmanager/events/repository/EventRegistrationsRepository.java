@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface EventRegistrationsRepository extends JpaRepository<EventRegistration, Long> {
 
-    // O "Busca Tudo" para o Revive Pattern (pega até os deletados)
+    // The "Search Everything" for the Revive Pattern (includes deleted ones)
     @Query(value = "SELECT * FROM event_registrations WHERE user_id = :userId AND event_id = :eventId", nativeQuery =
             true)
     Optional<EventRegistration> findByUserIdAndEventIdIncludeDeleted(@Param("userId") Long userId,
