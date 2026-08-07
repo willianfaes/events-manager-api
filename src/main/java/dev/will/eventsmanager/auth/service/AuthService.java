@@ -23,7 +23,9 @@ public class AuthService {
     private final LoginMapper loginMapper;
     private final RegisterUserMapper registerUserMapper;
 
-    public AuthService(AuthenticationManager authenticationManager, TokenService tokenService, PasswordEncoder passwordEncoder, UserRepository userRepository, LoginMapper loginMapper, RegisterUserMapper registerUserMapper) {
+    public AuthService(AuthenticationManager authenticationManager, TokenService tokenService,
+                       PasswordEncoder passwordEncoder, UserRepository userRepository,
+                       LoginMapper loginMapper, RegisterUserMapper registerUserMapper) {
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
@@ -47,9 +49,12 @@ public class AuthService {
     public RegisterUserResponse register(RegisterUserRequest request) {
         User newUser = registerUserMapper.toEntity(request);
 
-        newUser.setPassword(passwordEncoder.encode(request.password())); // Encodes password with BCrypt, then saves it inside newUser variable.
+        newUser.setPassword(passwordEncoder.encode(request.password()));
+        // Encodes password with BCrypt, then saves it inside newUser variable.
 
-        User savedUser = userRepository.save(newUser); // This catches the whole user line in the DB, right after the ID is generated, so savedUser now has even the ID! Full line!
+        User savedUser = userRepository.save(newUser);
+        // This catches the whole user line in the DB, right after the ID is generated,
+        // so savedUser now has even the ID! Full line!
 
         return registerUserMapper.toResponse(savedUser);
     }

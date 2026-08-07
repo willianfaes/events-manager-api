@@ -18,7 +18,9 @@ import java.util.List;
 @Table(name = "users")
 // 1. Override the delete command:
 @SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id=?")
-@SQLRestriction("is_deleted = false") // Banco, só me traga linhas dessa tabela onde "is_deleted" for false! (se a gente usa soft delete, o preço é ter que filtrar assim pra que as soft-deletadas nao venham junto nas queries)
+@SQLRestriction("is_deleted = false")
+// Database, only bring me rows from this table where "is_deleted" is false!
+// (if we use soft delete, the price is having to filter like this so that soft-deleted ones don't come along in queries)
 @Getter
 @Setter
 @NoArgsConstructor // Generates a no-argument constructor, required by JPA
@@ -41,8 +43,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL) // Or @ManyToOne, depending on your exact relationship
-    @JoinColumn(name = "address_id", nullable = false) // @JoinColumn, not @JoinTable, cause it's an auxiliary table, not a junction one (associative)
+    @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
+    // Or @ManyToOne, depending on your exact relationship
+    @JoinColumn(name = "address_id", nullable = false)
+    // @JoinColumn, not @JoinTable, cause it's an auxiliary table, not a junction one (associative)
     private UserAddress address;
 
     // One Event has MANY registrations

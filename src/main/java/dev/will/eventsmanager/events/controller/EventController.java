@@ -91,7 +91,8 @@ public class EventController {
      */
     @DeleteMapping("/{eventId}/registrations")
     public ResponseEntity<Void> unregisterFromEvent(@PathVariable Long eventId, Principal principal) {
-        eventService.unregisterUserFromEvent(eventId, principal.getName()); // Assuming principal.getName() is the user's email
+        eventService.unregisterUserFromEvent(eventId, principal.getName());
+        // Assuming principal.getName() is the user's email
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
