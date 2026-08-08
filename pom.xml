@@ -119,6 +119,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>events-manager</finalName>
 		<plugins>
 			<!-- 1. The Spring Boot Plugin (Left untouched so your app can run) -->
 			<plugin>
