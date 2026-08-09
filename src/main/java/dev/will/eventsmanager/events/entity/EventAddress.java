@@ -40,7 +40,7 @@ public class EventAddress {
     @Column(nullable = false, length = 100)
     private String state;
 
-    @Column(nullable = false,length = 20) // Postal code format can vary
+    @Column(name = "postal_code", nullable = false,length = 20)
     private String postalCode;
 
     @Column(nullable = false, length = 100)
