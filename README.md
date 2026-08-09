@@ -1,11 +1,14 @@
 # Events Manager API
 An API to manage local events and user registrations based on location relevance.
 
+See ROADMAP.md for the full data model, endpoint list, and future plans.
+
 ## Core Features (MVP)
 - User Authentication (JWT)
-- Event Management (CRUD with location details)
+- Event CRUD
+- Event categories (party, sport, concert, cultural)
+- User interest selection across multiple categories
 - Event Registration (Join/Leave events)
-- Filtering events by City and Country
 
 ## Running with Docker
 
