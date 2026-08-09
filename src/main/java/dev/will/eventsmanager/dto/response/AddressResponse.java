@@ -8,6 +8,6 @@ public record AddressResponse(
         String neighborhood,
         String city,
         String state,
-        String zipCode,
+        String postalCode,
         String country
 ) {}

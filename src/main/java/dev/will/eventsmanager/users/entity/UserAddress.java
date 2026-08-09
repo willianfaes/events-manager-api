@@ -35,7 +35,7 @@ public class UserAddress {
     private String state;
 
     @Column(nullable = false, length = 20)
-    private String postal_code;
+    private String postalCode;
 
     @Column(nullable = false, length = 20)
     private String country;

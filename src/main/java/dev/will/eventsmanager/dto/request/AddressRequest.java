@@ -28,8 +28,8 @@ public record AddressRequest(
         @Size(max = 100, message = "State must not exceed 100 characters")
         String state,
 
-        @Size(max = 20, message = "Zip code must not exceed 20 characters")
-        String postal_code,
+        @Size(max = 20, message = "Postal code must not exceed 20 characters")
+        String postalCode,
 
         @NotBlank(message = "Country cannot be empty")
         @Size(max = 100, message = "Country must not exceed 100 characters")
