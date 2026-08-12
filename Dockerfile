@@ -23,7 +23,7 @@ RUN jdeps \
     --output /custom-jre
 
 FROM alpine:3.21
-LABEL org.opencontainers.image.authors="willsaeff"
+LABEL org.opencontainers.image.authors="willianfaes"
 ENV JAVA_HOME=/opt/java
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 COPY --from=jlink-builder /custom-jre $JAVA_HOME

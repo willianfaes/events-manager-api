@@ -4,7 +4,7 @@ Este documento descreve o fluxo de trabalho diário de desenvolvimento, desde a 
 
 ## 1. O Dia 1: Setup Inicial (Apenas uma vez por máquina)
 O computador não reconhece um repositório Git magicamente. Apenas na primeira vez que for trabalhar em uma máquina nova, é necessário baixar todo o histórico e criar a pasta oculta `.git`.
-* **Comando:** `git clone https://github.com/willsaeff/events-manager.git`
+* **Comando:** `git clone https://github.com/willianfaes/events-manager.git`
 * **Próximo passo:** Entrar na pasta gerada (`cd events-manager`). A partir deste momento, o comando `clone` nunca mais é utilizado nesta máquina.
 
 ## 2. O Ritual Matinal: Sincronizando a Base
