@@ -1,0 +1,14 @@
+This is a placeholder to track the update. The actual update will be made via github-issue.
+
+Issue #21 sanitized content:
+Title: Add javax.validation annotations to request DTOs
+Body: Add javax.validation annotations to request DTOs to enable input validation.
+
+Acceptance criteria:
+- All request DTOs have appropriate validation annotations (@NotNull, @NotBlank, @Min, etc.)
+- Invalid input is rejected at the controller level
+- Validation errors provide clear feedback to clients
+
+Files: DTOs annotated with validation constraints
+
+Commit message: feat(validation): add validation annotations to request DTOs
