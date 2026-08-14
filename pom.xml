@@ -184,7 +184,7 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
-									<version>1${lombok.version}</version>
+									<version>${lombok.version}</version>
 								</path>
 								<path>
 									<groupId>org.projectlombok</groupId>
