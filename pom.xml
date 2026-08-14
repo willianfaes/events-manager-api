@@ -28,6 +28,8 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
+		<sonar.projectKey>events-manager-api</sonar.projectKey>
+		<sonar.host.url>http://localhost:9000</sonar.host.url>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -182,7 +184,7 @@
 								<path>
 									<groupId>org.projectlombok</groupId>
 									<artifactId>lombok</artifactId>
-									<version>${lombok.version}</version>
+									<version>1${lombok.version}</version>
 								</path>
 								<path>
 									<groupId>org.projectlombok</groupId>
@@ -194,7 +196,11 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>5.1.0.4751</version>
+			</plugin>
 		</plugins>
 	</build>
-
 </project>
