@@ -14,6 +14,37 @@ See ROADMAP.md for the full data model, endpoint list, and future plans.
 
 This project ships with a multi-stage `Dockerfile` and a `docker-compose.yml` that spins up both the app and its PostgreSQL database.
 
+## Code quality
+
+This project uses [SonarQube](https://www.sonarsource.com/products/sonarqube/) (Community Edition, self-hosted) for static code analysis.
+
+### Running SonarQube locally
+
+Start the SonarQube server (runs under the `tools` profile, so it won't start with a regular `docker compose up -d` or `docker compose up -d db`):
+
+```bash
+docker compose --profile tools up -d sonarqube
+```
+
+First boot takes a minute or two. Once ready, open [http://localhost:9000](http://localhost:9000) and log in (default `admin` / `admin`, you'll be prompted to change it on first login).
+
+Create a project (key: `events-manager-api`) and generate a **Project Analysis Token** under your account's Security settings. Tokens are shown once — copy it immediately.
+
+### Running an analysis
+
+Set the token for your session, then run the build with the `sonar` goal:
+
+```powershell
+$env:SONAR_TOKEN = "your-token-here"
+.\mvnw.cmd clean verify sonar:sonar -Dsonar.token=$env:SONAR_TOKEN
+```
+
+`sonar.projectKey` and `sonar.host.url` are already configured in `pom.xml`, so no need to pass them on the command line.
+
+Results are available at [http://localhost:9000/dashboard?id=events-manager-api](http://localhost:9000/dashboard?id=events-manager-api).
+
+> ⚠️ The token is a credential — never commit it or share it. Regenerate it if it's ever exposed.
+
 ### Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
