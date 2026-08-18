@@ -14,6 +14,36 @@ See ROADMAP.md for the full data model, endpoint list, and future plans.
 
 This project ships with a multi-stage `Dockerfile` and a `docker-compose.yml` that spins up both the app and its PostgreSQL database.
 
+### Commit Conventions
+
+This repository follows [Conventional Commits](https://www.conventionalcommits.org/) to keep commit history consistent and readable.
+
+**Format:** `type(scope): short summary`
+
+**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
+**Scopes:** `auth`, `events`, `users`, `core`, `docs`, `test`, `chore`
+
+**Examples:**
+```
+feat(auth): add login endpoint
+fix(events): prevent duplicate registrations
+test(auth): add token service tests
+docs(readme): clarify docker setup
+```
+
+**Setup (run once per clone):**
+
+```bash
+git config --local commit.template .gitmessage.txt
+git config --local core.hooksPath .githooks
+git update-index --chmod=+x .githooks/commit-msg
+```
+
+- The `.gitmessage.txt` template prefills the commit message — in the CLI and in IntelliJ's Commit tool window automatically, no plugin required.
+- The `.githooks/commit-msg` hook validates the subject line against the convention above and rejects non-conforming commits. It skips merge, revert, `fixup!`/`squash!`, and initial commits automatically.
+- This setup is local to each clone — Git doesn't sync hooks or config automatically, so anyone working on this repo needs to run the three commands above once after cloning.
+- Enforcement is local-only (bypassable with `git commit --no-verify`); a CI check on PR titles/commits is a natural next step if stricter enforcement is needed.
+
 ## Code quality
 
 This project uses [SonarQube](https://www.sonarsource.com/products/sonarqube/) (Community Edition, self-hosted) for static code analysis.
