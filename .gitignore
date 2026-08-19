@@ -1,6 +1,7 @@
 HELP.md
 target/
 .env
+src/main/resources/application-local.properties
 desktop.ini
 Thumbs.db
 .scannerwork/
