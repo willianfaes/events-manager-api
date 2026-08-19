@@ -80,17 +80,18 @@ Results are available at [http://localhost:9000/dashboard?id=events-manager-api]
 
 ### Setup
 
-1. Copy the example environment file and adjust values as needed:
+1. Copy the example environment and properties files, and adjust values as needed:
 ```bash
    cp .env.example .env
+   cp src/main/resources/application-local.properties.example src/main/resources/application-local.properties
 ```
-   > ⚠️ Replace `DB_PASSWORD` with a real value before running — the database container will not start with an empty password. This is fine for local development, but should never be reused for a real deployment.
+> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error.
 
 2. Build and start the stack:
 ```bash
    docker compose up -d --build
 ```
-   This builds the app image (Maven build → jlink custom runtime → minimal Alpine image) and starts both the `db` and `events-manager` containers. The app waits for the database to report healthy before starting.
+This builds the app image (Maven build → `eclipse-temurin:25-jre-alpine` runtime) and starts both the `db` and `events-manager` containers. The app waits for the database to report healthy before starting.
 
 3. The API will be available at `http://localhost:8080`.
 
@@ -112,4 +113,4 @@ You can run the database in Docker while running the Spring Boot app directly fr
 docker compose up -d db
 ```
 
-Then run the app normally from IntelliJ — it will fall back to `localhost:5432` per the defaults in `application.properties`.
+Then run the app normally from IntelliJ (or `./mvnw spring-boot:run`) — the `local` Spring profile is active by default, reading your password from `application-local.properties` (see Setup step 1 above). No IDE-specific run configuration is needed.
