@@ -1,1 +1,4 @@
+# Only the password needs overriding here — url/username are already
+# correct for local (see application.properties) and don't need to
+# be duplicated. Keep this password in sync with .env's DB_PASSWORD.
 spring.datasource.password=changeme

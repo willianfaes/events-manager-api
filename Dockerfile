@@ -9,7 +9,7 @@ FROM eclipse-temurin:25-jre-alpine
 LABEL org.opencontainers.image.authors="willianfaes"
 WORKDIR /app
 COPY --from=builder /build/target/*.jar events-manager.jar
-RUN addgroup -S spring && adduser -S spring -G spring
+RUN chown -R spring:spring /app
 USER spring
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "events-manager.jar"]
