@@ -21,8 +21,11 @@ The MVP is the core backend for users, events, and registrations.
 
 ### Core features
 - user sign-up and login with JWT
+- role-based access control (USER, ADMIN) enforced via @PreAuthorize
 - create and read events
 - register and unregister a user for an event
+- registration respects event capacity (max/available spots), enforced
+transactionally to prevent overselling under concurrent requests
 - user selects one or more categories they're interested in
 - soft delete behavior for the main domain entities where the schema already supports it
 - event location data stored directly with the event
@@ -51,6 +54,8 @@ Think of the data model like this:
 - An `Event` references exactly one `Category`.
 - A `User` can be interested in many `Category` values, and each `Category` can have many interested `User`s, via the `UserInterest` join table.
 - `EventRegistration` is the join entity that represents participation, with soft delete support so a user can leave and later rejoin.
+- `Event` carries a maximum capacity and a derived/tracked available-spots count; registration is only allowed while spots remain.
+- `User` carries a role (`USER` or `ADMIN`); only `ADMIN` can create events.
 
 In ER-diagram terms:
 
@@ -75,6 +80,8 @@ In ER-diagram terms:
 | Event | `GET` | `/events` | List events. |
 | Event | `GET` | `/events/{id}` | Fetch a single event by ID. |
 | Event | `POST` | `/events` | Create a new event. |
+(note: restricted to ADMIN, enforced via @PreAuthorize)
+| Registration | `GET` | `/users/me/registrations?upcoming={bool}` | List the authenticated user's event registrations, paginated — upcoming or past. |
 | Registration | `POST` | `/events/{eventId}/registrations` | Register the authenticated user for an event. |
 | Registration | `DELETE` | `/events/{eventId}/registrations` | Unregister the authenticated user from an event. |
 | User Interests | `GET` | `/users/me/interests` | List the authenticated user's selected categories. |
@@ -98,5 +105,9 @@ Nothing here is deleted. It is just not in scope yet.
 | Now | Next | Later |
 |---|---|---|
 | Stabilize the daily dev workflow, keep the build/test flow reliable, and finish the core auth + event + registration path. | Convert the test suite to be self-contained with Testcontainers, remove temporary script workarounds, and tighten the MVP API behavior. | Add Maps, live ingestion, recommendations, and other higher-ambition product layers once the core backend is solid. |
-| Replace the hardcoded Category CHECK constraint with a proper `categories` table and add the `user_interests` join table so users can select multiple categories. | Add the missing API polish: validation, filtering, pagination, and clearer error handling where needed. | Expand into the broader future vision without forcing it into the MVP. |
+| Replace the hardcoded Ca<br/>tegory CHECK constraint with a proper `categories` table and add the `user_interests` join table so users can select multiple categories. | Add the missing API polish: validation, filtering, pagination, clearer error handling, and Swagger `@Operation`/`@ApiResponse` annotations documenting error codes per endpoint. | Expand into the broader future vision without forcing it into the MVP. |
 | Finish soft-delete on `EventRegistration` to match the pattern already used on `User`, `Event`, and `EventAddress`. | Keep the roadmap and implementation in sync so future AI help always knows what comes next. | Treat this as the point where the project becomes a richer city-events platform rather than just a backend exercise. |
+| — | Add role-based authorization (USER/ADMIN) with `@PreAuthorize` on event creation. | — |
+| — | Add event capacity (max/available spots) with `@Transactional` registration to prevent race conditions on the last spot. | — |
+| — | Add a paginated, sorted "my registrations" endpoint (upcoming vs. past). | — |
+| — | Expand the global exception handler beyond duplicate-email to cover capacity and authorization errors with clean JSON responses. | — |
