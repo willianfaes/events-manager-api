@@ -2,10 +2,14 @@ package dev.will.eventsmanager.users.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.io.Serializable;
 
 @Entity
+@SQLDelete(sql = "UPDATE user_addresses SET is_deleted = true WHERE id=?")
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -35,4 +39,7 @@ public class UserAddress implements Serializable {
 
     @Column(nullable = false, length = 2)
     private String countryCode;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted = false;
 }
