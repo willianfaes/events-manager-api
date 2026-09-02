@@ -1,9 +1,9 @@
 package dev.will.eventsmanager.users;
 
-import dev.will.eventsmanager.dto.request.AddressRequest;
-import dev.will.eventsmanager.events.entity.Event;
+import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
+import dev.will.eventsmanager.users.entity.User;
 
 public interface UserAddressMapper {
 
-    Event toEntity(AddressRequest request);
+    User toEntity(UserAddressRequest request);
 }
