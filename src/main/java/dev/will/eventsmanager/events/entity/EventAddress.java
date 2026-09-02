@@ -7,9 +7,7 @@ import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "event_addresses")
-// 1. Override the delete command:
 @SQLDelete(sql = "UPDATE event_addresses SET is_deleted = true WHERE id=?")
-// 2. Filter all future queries:
 @SQLRestriction("is_deleted = false")
 @Getter
 @Setter
@@ -22,27 +20,26 @@ public class EventAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String street;
 
-    @Column(nullable = false, length = 20) // Number can be alphanumeric
-    private String number;
-
-    @Column(length = 100) // Complement is optional
+    @Column(length = 100)
     private String complement;
-
-    @Column(nullable = false, length = 100)
-    private String neighborhood;
 
     @Column(nullable = false, length = 100)
     private String city;
 
-    @Column(nullable = false, length = 100)
-    private String state;
+    @Column(name = "state_or_province", length = 100)
+    private String stateOrProvince;
 
-    @Column(name = "postal_code", nullable = false,length = 20)
+    @Column(name = "postal_code", nullable = false, length = 12)
     private String postalCode;
 
-    @Column(nullable = false, length = 100)
-    private String country;
+    @Column(name = "country_code", nullable = false, length = 2)
+    private String countryCode;
+
+    private String venueName;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean deleted = false;
 }
