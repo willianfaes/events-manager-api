@@ -3,6 +3,8 @@ package dev.will.eventsmanager.users.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
+
 @Entity
 @Getter
 @Setter
@@ -10,33 +12,27 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(name = "user_addresses")
-public class UserAddress {
+public class UserAddress implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 150)
     private String street;
 
-    @Column(nullable = false, length = 20)
-    private String number;
-
-    @Column(length = 20)
+    @Column(length = 100)
     private String complement;
 
-    @Column(nullable = false, length = 20)
-    private String neighborhood;
-
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 100)
     private String city;
 
-    @Column(nullable = false, length = 20)
-    private String state;
+    @Column(length = 100)
+    private String stateOrProvince;
 
-    @Column(name = "postal_code", nullable = false, length = 20)
+    @Column(nullable = false, length = 12)
     private String postalCode;
 
-    @Column(nullable = false, length = 20)
-    private String country;
+    @Column(nullable = false, length = 2)
+    private String countryCode;
 }

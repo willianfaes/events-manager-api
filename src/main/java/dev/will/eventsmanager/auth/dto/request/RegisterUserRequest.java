@@ -1,6 +1,6 @@
 package dev.will.eventsmanager.auth.dto.request;
 
-import dev.will.eventsmanager.dto.request.AddressRequest;
+import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -23,7 +23,6 @@ public record RegisterUserRequest(
         String password,
 
         @NotNull(message = "Address information is required")
-        @Valid // CRITICAL: This tells Spring to validate the fields INSIDE AddressRequest
-        AddressRequest address
-) {
-}
+        @Valid
+        UserAddressRequest address
+) {}

@@ -1,6 +1,5 @@
 package dev.will.eventsmanager.events.dto.request;
 
-import dev.will.eventsmanager.dto.request.AddressRequest;
 import dev.will.eventsmanager.events.entity.Category;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -20,7 +19,7 @@ public record EventCreateRequest(
 
     @NotNull(message = "Address cannot be null")
     @Valid
-    AddressRequest address,
+    EventAddressRequest address,
 
     String description
 ) {
