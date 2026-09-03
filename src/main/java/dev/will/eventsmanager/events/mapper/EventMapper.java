@@ -6,10 +6,10 @@ import dev.will.eventsmanager.events.entity.Event;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {EventAddressMapper.class, EventRegistrationMapper.class}) // Makes MapStruct generate a Spring component
+@Mapper(componentModel = "spring", uses = {EventAddressMapper.class, EventRegistrationMapper.class})
 public interface EventMapper {
 
-    @Mapping(target = "id", ignore = true) // ID is auto-generated
+    @Mapping(target = "id", ignore = true)
     Event toEntity(EventCreateRequest request);
 
     EventResponse toResponse(Event event);

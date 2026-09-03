@@ -12,15 +12,13 @@ import java.util.List;
 
 @Entity
 @Table(name = "events")
-// 1. Override the delete command:
 @SQLDelete(sql = "UPDATE events SET is_deleted = true WHERE id=?")
-// 2. Filter all future queries:
 @SQLRestriction("is_deleted = false")
 @Getter
 @Setter
-@NoArgsConstructor // Generates a no-argument constructor, required by JPA
-@AllArgsConstructor // Generates a constructor with all fields
-@Builder // Generates a builder pattern for object creation
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Event {
 
     @Id
@@ -30,23 +28,20 @@ public class Event {
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING) // Stores the enum name as a String in the database
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Category category;
 
     @Column(nullable = false)
-    private LocalDateTime schedule; // Changed from 'time' to 'schedule' to match SQL
+    private LocalDateTime schedule;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
-    // Or @ManyToOne, depending on your exact relationship
     @JoinColumn(name = "address_id", nullable = false)
-    // @JoinColumn, not @JoinTable, cause it's an auxiliary table, not a junction one (associative)
     private EventAddress address;
 
-    @Column(columnDefinition = "TEXT") // Maps to the TEXT type in MySQL
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    // One Event has MANY registrations
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     private List<EventRegistration> registrations;
 
@@ -60,6 +55,4 @@ public class Event {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
-
 }
-

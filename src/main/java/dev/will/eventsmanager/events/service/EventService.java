@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,8 +30,11 @@ public class EventService {
     private final EventRegistrationsRepository eventRegistrationsRepository;
     private final UserRepository userRepository;
 
-    public List<Event> findAllEvents() {
-        return Collections.emptyList(); // Stub: returns an empty list
+    public List<EventResponse> findAllEvents() {
+        List<Event> events = eventRepository.findAllWithAddress();
+        return events.stream()
+                .map(eventMapper::toResponse)
+                .toList();
     }
 
     public Optional<Event> findEventById(Long id) {
