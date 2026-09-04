@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.dto.response;
 
 import dev.will.eventsmanager.events.entity.Category;
+import dev.will.eventsmanager.events.entity.EventRegistration;
 
 import java.time.LocalDateTime;
 import java.util.List;
