@@ -1,6 +1,5 @@
-package dev.will.eventsmanager.auth;
+package dev.will.eventsmanager.auth.security;
 
-import dev.will.eventsmanager.auth.config.JWTUserData;
 import dev.will.eventsmanager.auth.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,7 +28,7 @@ public class SecurityFilter extends OncePerRequestFilter {
         String authorizedHeader = request.getHeader("Authorization");
         if (authorizedHeader != null && authorizedHeader.startsWith("Bearer ")){
             String token = authorizedHeader.substring("Bearer ".length());
-            Optional<JWTUserData> optUser = tokenConfig.validadeToken(token);
+            Optional<JWTUserData> optUser = tokenConfig.validateToken(token);
             if (optUser.isPresent()){
                 JWTUserData userData = optUser.get();
                 UsernamePasswordAuthenticationToken authentication =
