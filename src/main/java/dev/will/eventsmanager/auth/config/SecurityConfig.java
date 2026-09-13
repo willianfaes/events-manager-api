@@ -1,4 +1,4 @@
-package dev.will.eventsmanager.config;
+package dev.will.eventsmanager.auth.config;
 
 import dev.will.eventsmanager.auth.SecurityFilter;
 import jakarta.servlet.DispatcherType;
