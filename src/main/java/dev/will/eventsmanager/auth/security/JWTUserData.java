@@ -1,4 +1,4 @@
-package dev.will.eventsmanager.auth.config;
+package dev.will.eventsmanager.auth.security;
 
 import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;

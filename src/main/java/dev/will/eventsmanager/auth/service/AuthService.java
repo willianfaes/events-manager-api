@@ -7,7 +7,7 @@ import dev.will.eventsmanager.auth.dto.response.RegisterUserResponse;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.auth.mapper.LoginMapper;
 import dev.will.eventsmanager.auth.mapper.RegisterUserMapper;
-import dev.will.eventsmanager.users.UserRepository;
+import dev.will.eventsmanager.users.repository.UserRepository;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

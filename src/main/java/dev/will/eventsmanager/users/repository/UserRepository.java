@@ -1,4 +1,4 @@
-package dev.will.eventsmanager.users;
+package dev.will.eventsmanager.users.repository;
 
 import dev.will.eventsmanager.users.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
