@@ -1,4 +1,4 @@
-package dev.will.eventsmanager.auth;
+package dev.will.eventsmanager.auth.controller;
 
 import dev.will.eventsmanager.auth.service.AuthService;
 import dev.will.eventsmanager.auth.dto.request.LoginRequest;
