@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/events")
@@ -28,23 +27,12 @@ public class EventController {
         this.eventMapper = eventMapper;
     }
 
-    /**
-     * GET /events: Retrieve a list of all events.
-     * @return ResponseEntity containing a list of EventResponse DTOs.
-     */
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents() {
-        List<EventResponse> events = eventService.findAllEvents().stream()
-                .map(eventMapper::toResponse)
-                .collect(Collectors.toList());
+        List<EventResponse> events = eventService.findAllEvents();
         return ResponseEntity.ok(events);
     }
 
-    /**
-     * GET /events/{id}: Retrieve a single event by its ID.
-     * @param id The ID of the event to retrieve.
-     * @return ResponseEntity containing the EventResponse DTO.
-     */
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
         return eventService.findEventById(id)
@@ -53,23 +41,12 @@ public class EventController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /**
-     * POST /events: Create a new event.
-     * @param request The EventRequest DTO containing event details.
-     * @return ResponseEntity containing the created EventResponse DTO.
-     */
     @PostMapping
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(eventService.createEvent(request));
     }
 
-    /**
-     * POST /events/{eventId}/registrations: Register the authenticated user for an event.
-     * @param eventId The ID of the event to register for.
-     * @param loggedUser The authenticated user's principal.
-     * @return ResponseEntity indicating success or failure.
-     */
     @PostMapping("/{eventId}/registrations")
     public ResponseEntity<EventRegistrationResponse> registerForEvent(
             @PathVariable Long eventId,
@@ -83,12 +60,6 @@ public class EventController {
                 .body(eventService.registerUserForEvent(userEmail, eventId));
     }
 
-    /**
-     * DELETE /events/{eventId}/registrations : Unregister the authenticated user from an event.
-     * @param eventId The ID of the event to unregister from.
-     * @param principal The authenticated user's principal.
-     * @return ResponseEntity indicating success or failure.
-     */
     @DeleteMapping("/{eventId}/registrations")
     public ResponseEntity<Void> unregisterFromEvent(@PathVariable Long eventId, Principal principal) {
         eventService.unregisterUserFromEvent(eventId, principal.getName());

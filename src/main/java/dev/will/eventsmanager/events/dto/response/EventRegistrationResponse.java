@@ -1,4 +1,6 @@
 package dev.will.eventsmanager.events.dto.response;
 
-public record EventRegistrationResponse() {
+public record EventRegistrationResponse(
+        Long id
+) {
 }
