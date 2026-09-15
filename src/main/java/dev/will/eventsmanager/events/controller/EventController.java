@@ -1,11 +1,17 @@
 package dev.will.eventsmanager.events.controller;
 
+import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.service.EventService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,10 +19,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/events")
+@SecurityRequirement(name = "bearerAuth")
 public class EventController {
 
     private final EventService eventService;
@@ -28,8 +34,12 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EventResponse>> getAllEvents() {
-        List<EventResponse> events = eventService.findAllEvents();
+    @Operation(summary = "Get all events with pagination")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved events")
+    public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
+            @ParameterObject
+            Pageable pageable) {
+        PageResponse<EventResponse> events = eventService.findAllEvents(pageable);
         return ResponseEntity.ok(events);
     }
 

@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.service;
 
+import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.mapper.EventMapper;
@@ -9,6 +10,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -31,25 +36,46 @@ class EventServiceTest {
     void shouldReturnAllEvents() {
 
         Event fakeEvent = new Event();
-        List<Event> fakeEvents = List.of(fakeEvent);
+        Pageable fakePageable = PageRequest.of(0, 10);
+        Page<Event> fakePage = new PageImpl<>(
+                List.of(fakeEvent),
+                fakePageable,
+                1L
+        );
         EventResponse fakeResponse = EventResponse.builder().build();
 
-        when(eventRepository.findAllWithAddress()).thenReturn(fakeEvents);
+        when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
         when(eventMapper.toResponse(fakeEvent)).thenReturn(fakeResponse);
 
-        List<EventResponse> result = eventService.findAllEvents();
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
 
-        assertThat(result)
+        assertThat(result.content())
+                .isNotNull()
                 .hasSize(1)
                 .containsExactly(fakeResponse);
+
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(10);
+        assertThat(result.totalElements()).isEqualTo(1L);
+        assertThat(result.totalPages()).isEqualTo(1);
+        assertThat(result.last()).isTrue();
     }
 
-    @Test
+       @Test
     void shouldReturnEmptyListWhenNoEventsExist() {
-        when(eventRepository.findAllWithAddress()).thenReturn(List.of());
 
-        List<EventResponse> result = eventService.findAllEvents();
+           Pageable fakePageable = PageRequest.of(0, 10);
+           Page<Event> fakePage = Page.empty(fakePageable);
 
-        assertThat(result).isEmpty();
+      when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
+
+      PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
+
+      assertThat(result.content()).isEmpty();
+      assertThat(result.page()).isZero();
+      assertThat(result.size()).isEqualTo(10);
+      assertThat(result.totalElements()).isZero();
+      assertThat(result.totalPages()).isZero();
+      assertThat(result.last()).isTrue();
     }
 }

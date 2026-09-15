@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.service;
 
+import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
@@ -13,10 +14,11 @@ import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -30,11 +32,9 @@ public class EventService {
     private final EventRegistrationsRepository eventRegistrationsRepository;
     private final UserRepository userRepository;
 
-    public List<EventResponse> findAllEvents() {
-        List<Event> events = eventRepository.findAllWithAddress();
-        return events.stream()
-                .map(eventMapper::toResponse)
-                .toList();
+    public PageResponse<EventResponse> findAllEvents(Pageable pageable) {
+        Page<Event> events = eventRepository.findAllWithAddress(pageable);
+        return PageResponse.from(events.map(eventMapper::toResponse));
     }
 
     public Optional<Event> findEventById(Long id) {
