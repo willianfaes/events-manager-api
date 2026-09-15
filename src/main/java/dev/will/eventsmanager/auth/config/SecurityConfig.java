@@ -40,6 +40,11 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll() // Let system errors pass freely
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // Anyone can try to log in (Open gate)
                         .requestMatchers(HttpMethod.POST, "/auth/register").permitAll() // Anyone can try to create an account (Open gate)
+                        .requestMatchers(HttpMethod.GET,
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**"
+                        ).permitAll() // Anyone can see the events (Open gate)
                         .anyRequest().authenticated()) // FOR ALL OTHER ROUTES: Must present the JWT Token (VIP only)
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build(); // 5. Assembles and packages all these rules
