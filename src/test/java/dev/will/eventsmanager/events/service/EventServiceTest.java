@@ -43,4 +43,13 @@ class EventServiceTest {
                 .hasSize(1)
                 .containsExactly(fakeResponse);
     }
+
+    @Test
+    void shouldReturnEmptyListWhenNoEventsExist() {
+        when(eventRepository.findAllWithAddress()).thenReturn(List.of());
+
+        List<EventResponse> result = eventService.findAllEvents();
+
+        assertThat(result).isEmpty();
+    }
 }
