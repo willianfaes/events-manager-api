@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
@@ -37,8 +38,10 @@ public class EventService {
         return PageResponse.from(events.map(eventMapper::toResponse));
     }
 
-    public Optional<Event> findEventById(Long id) {
-        return Optional.empty(); // Stub: returns empty optional
+    public EventResponse findEventById(Long id) throws ResourceNotFoundException {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", id));
+        return eventMapper.toResponse(event);
     }
 
     public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
