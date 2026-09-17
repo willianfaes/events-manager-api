@@ -1,16 +1,21 @@
 package dev.will.eventsmanager.events.controller;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +24,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+
+import static java.util.Optional.empty;
 
 @RestController
 @RequestMapping("/events")
@@ -44,11 +51,18 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get event by ID", description = "Returns a single event, including its address")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Event found",
+                    content = @Content(schema = @Schema(implementation = EventResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Event not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
-        return eventService.findEventById(id)
-                .map(eventMapper::toResponse)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Page<?> page = Page.<EventResponse>empty();
+        PageResponse.from(page);
+        EventResponse event = eventService.findEventById(id);
+        return ResponseEntity.ok(event);
     }
 
     @PostMapping
