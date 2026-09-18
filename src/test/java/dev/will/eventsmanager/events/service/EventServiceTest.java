@@ -65,22 +65,22 @@ class EventServiceTest {
         assertThat(result.last()).isTrue();
     }
 
-       @Test
+    @Test
     void shouldReturnEmptyListWhenNoEventsExist() {
 
-           Pageable fakePageable = PageRequest.of(0, 10);
-           Page<Event> fakePage = Page.empty(fakePageable);
+        Pageable fakePageable = PageRequest.of(0, 10);
+        Page<Event> fakePage = Page.empty(fakePageable);
 
-      when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
+        when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
 
-      PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
 
-      assertThat(result.content()).isEmpty();
-      assertThat(result.page()).isZero();
-      assertThat(result.size()).isEqualTo(10);
-      assertThat(result.totalElements()).isZero();
-      assertThat(result.totalPages()).isZero();
-      assertThat(result.last()).isTrue();
+        assertThat(result.content()).isEmpty();
+        assertThat(result.page()).isZero();
+        assertThat(result.size()).isEqualTo(10);
+        assertThat(result.totalElements()).isZero();
+        assertThat(result.totalPages()).isZero();
+        assertThat(result.last()).isTrue();
     }
 
     @Test
