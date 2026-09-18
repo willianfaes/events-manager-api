@@ -39,7 +39,7 @@ public class EventService {
     }
 
     public EventResponse findEventById(Long id) throws ResourceNotFoundException {
-        Event event = eventRepository.findById(id)
+        Event event = eventRepository.findByIdWithAddress(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", id));
         return eventMapper.toResponse(event);
     }
