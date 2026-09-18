@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.mapper.EventMapper;
@@ -16,8 +17,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,5 +81,32 @@ class EventServiceTest {
       assertThat(result.totalElements()).isZero();
       assertThat(result.totalPages()).isZero();
       assertThat(result.last()).isTrue();
+    }
+
+    @Test
+    void findEventById_whenEventExists_returnsMappedResponse() {
+        Long id = 1L;
+        Event event = Event.builder().id(id).build();
+        EventResponse expectedResponse = EventResponse.builder().id(id).build();
+
+        when(eventRepository.findByIdWithAddress(id)).thenReturn(Optional.of(event));
+        when(eventMapper.toResponse(event)).thenReturn(expectedResponse);
+
+        EventResponse result = eventService.findEventById(id);
+
+        assertThat(result).isEqualTo(expectedResponse);
+        verify(eventRepository).findByIdWithAddress(id);
+        verify(eventMapper).toResponse(event);
+    }
+
+    @Test
+    void getEventById_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long id = 999L;
+        when(eventRepository.findByIdWithAddress(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.findEventById(id))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event")
+                .hasMessageContaining(id.toString());
     }
 }

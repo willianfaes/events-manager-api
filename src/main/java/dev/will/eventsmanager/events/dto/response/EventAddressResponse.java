@@ -1,5 +1,8 @@
 package dev.will.eventsmanager.events.dto.response;
 
+import lombok.Builder;
+
+@Builder
 public record EventAddressResponse(
         Long id,
         String street,

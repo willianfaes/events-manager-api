@@ -13,7 +13,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e JOIN FETCH e.address")
     Page<Event> findAllWithAddress(Pageable pageable);
 
-    @Override
     @Query("SELECT e FROM Event e JOIN FETCH e.address WHERE e.id = :id")
-    Optional<Event> findById(Long id);
+    Optional<Event> findByIdWithAddress(Long id);
 }
