@@ -1,4 +1,4 @@
-package dev.will.eventsmanager.events;
+package dev.will.eventsmanager.events.controller;
 
 import dev.will.eventsmanager.AbstractIntegrationTest;
 import dev.will.eventsmanager.events.entity.Category;

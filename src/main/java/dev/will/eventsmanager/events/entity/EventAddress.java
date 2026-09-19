@@ -38,6 +38,7 @@ public class EventAddress {
     @Column(name = "country_code", nullable = false, length = 2)
     private String countryCode;
 
+    @Column(name = "venue_name", length = 255)
     private String venueName;
 
     @Column(name = "is_deleted", nullable = false)

@@ -39,7 +39,7 @@ public class Event {
     @JoinColumn(name = "address_id", nullable = false)
     private EventAddress address;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 1000)
     private String description;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
