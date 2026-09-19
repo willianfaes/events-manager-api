@@ -45,13 +45,8 @@ public class EventService {
     }
 
     public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
-        // 1. DTO vira Entidade
         Event entity = eventMapper.toEntity(eventCreateRequest);
-
-        // 2. Salva no banco de verdade (Agora sim!)
         Event saved = eventRepository.save(entity);
-
-        // 3. Entidade vira DTO de Resposta
         return eventMapper.toResponse(saved);
     }
 

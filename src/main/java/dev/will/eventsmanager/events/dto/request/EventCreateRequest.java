@@ -2,25 +2,30 @@ package dev.will.eventsmanager.events.dto.request;
 
 import dev.will.eventsmanager.events.entity.Category;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
 public record EventCreateRequest(
-    @NotBlank(message = "Name cannot be empty")
-    String name,
+        @NotBlank
+        @Size(max = 255)
+        String name,
 
-    @NotNull(message = "Category cannot be null")
-    Category category,
+        @NotNull
+        Category category,
 
-    @NotNull(message = "Schedule cannot be null")
-    LocalDateTime schedule,
+        @NotNull
+        @Future
+        LocalDateTime schedule,
 
-    @NotNull(message = "Address cannot be null")
-    @Valid
-    EventAddressRequest address,
+        @NotNull
+        @Valid
+        EventAddressRequest address,
 
-    String description
+        @Size(max = 1000)
+        String description
 ) {
 }
