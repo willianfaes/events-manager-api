@@ -31,9 +31,10 @@ CREATE TABLE users
     email      VARCHAR(255) NOT NULL UNIQUE,
     age        INT,
     password   VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN   DEFAULT FALSE,
+    created_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP             DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN               DEFAULT FALSE,
+    role       VARCHAR(20)  NOT NULL DEFAULT 'USER' CHECK ( role IN ('USER', 'ADMIN')),
     FOREIGN KEY (address_id) REFERENCES user_addresses (id)
 );
 

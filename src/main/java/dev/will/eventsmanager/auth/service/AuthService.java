@@ -4,6 +4,7 @@ import dev.will.eventsmanager.auth.dto.request.LoginRequest;
 import dev.will.eventsmanager.auth.dto.request.RegisterUserRequest;
 import dev.will.eventsmanager.auth.dto.response.LoginResponse;
 import dev.will.eventsmanager.auth.dto.response.RegisterUserResponse;
+import dev.will.eventsmanager.users.entity.Role;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.auth.mapper.LoginMapper;
 import dev.will.eventsmanager.auth.mapper.RegisterUserMapper;
@@ -51,6 +52,8 @@ public class AuthService {
 
         newUser.setPassword(passwordEncoder.encode(request.password()));
         // Encodes password with BCrypt, then saves it inside newUser variable.
+
+        newUser.setRole(Role.USER);
 
         User savedUser = userRepository.save(newUser);
         // This catches the whole user line in the DB, right after the ID is generated,
