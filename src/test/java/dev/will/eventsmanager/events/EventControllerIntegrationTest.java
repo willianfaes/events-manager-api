@@ -5,11 +5,13 @@ import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
 import dev.will.eventsmanager.events.repository.EventRepository;
+import jakarta.persistence.EntityManager;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -17,10 +19,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Transactional
 class EventControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    @Autowired
+    EntityManager entityManager;
 
     @Autowired
     EventRepository eventRepository;
@@ -47,7 +53,8 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .build();
 
         Event saved = eventRepository.save(event);
-
+        entityManager.flush();  // grava no banco
+        entityManager.clear();  // esvazia o cache: o GET vai ler do banco de verdade
 
         mockMvc.perform(get("/events/{id}", saved.getId()))
                 .andExpect(status().isOk())
