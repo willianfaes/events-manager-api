@@ -3,7 +3,9 @@ package dev.will.eventsmanager.events.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
+@Builder
 public record EventAddressRequest(
         @NotBlank(message = "Street cannot be empty")
         @Size(max = 150, message = "Street must not exceed 150 characters")

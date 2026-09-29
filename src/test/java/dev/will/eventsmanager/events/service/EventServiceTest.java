@@ -2,7 +2,10 @@ package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
+import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
+import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
+import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.repository.EventRepository;
@@ -16,6 +19,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -108,5 +112,35 @@ class EventServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event")
                 .hasMessageContaining(id.toString());
+    }
+
+    @Test
+    void createEvent_returnsResponseMappedFromSavedEntity() {
+        EventAddressRequest address = EventAddressRequest.builder()
+                .street("Main Street")
+                .city("São Paulo")
+                .stateOrProvince("SP")
+                .postalCode("01310-100")
+                .build();
+
+        EventCreateRequest request = EventCreateRequest.builder()
+                .name("Tech Conference 2026")
+                .category(Category.CULTURAL)
+                .schedule(LocalDateTime.now().plusDays(30))
+                .address(address)
+                .description("Annual tech conference")
+                .build();
+
+        Event toPersist = Event.builder().build();
+        Event saved = Event.builder().id(1L).build();
+        EventResponse expected = EventResponse.builder().id(1L).build();
+
+        when(eventMapper.toEntity(request)).thenReturn(toPersist);
+        when(eventRepository.save(toPersist)).thenReturn(saved);
+        when(eventMapper.toResponse(saved)).thenReturn(expected);
+
+        EventResponse result = eventService.createEvent(request);
+
+        assertThat(result).isSameAs(expected);
     }
 }
