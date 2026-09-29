@@ -5,13 +5,11 @@ import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
-import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -28,19 +26,15 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.security.Principal;
 
-import static java.util.Optional.empty;
-
 @RestController
 @RequestMapping("/events")
 @SecurityRequirement(name = "bearerAuth")
 public class EventController {
 
     private final EventService eventService;
-    private final EventMapper eventMapper;
 
-    public EventController(EventService eventService, EventMapper eventMapper) {
+    public EventController(EventService eventService) {
         this.eventService = eventService;
-        this.eventMapper = eventMapper;
     }
 
     @GetMapping
@@ -55,12 +49,10 @@ public class EventController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get event by ID", description = "Returns a single event, including its address")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Event found",
-                    content = @Content(schema = @Schema(implementation = EventResponse.class))),
-            @ApiResponse(responseCode = "404", description = "Event not found",
+    @ApiResponse(responseCode = "200", description = "Event found",
+                    content = @Content(schema = @Schema(implementation = EventResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Event not found",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    })
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
         Page<?> page = Page.<EventResponse>empty();
         PageResponse.from(page);
@@ -70,6 +62,12 @@ public class EventController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create an event", description = "Creates a new event. Requires ADMIN role.")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponse(responseCode = "201", description = "Event created; Location header points to the new resource")
+    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. missing category, schedule in the past)",
+            content = @Content)
+    @ApiResponse(responseCode = "403", description = "Missing/invalid token or caller is not ADMIN", content = @Content)
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest request) {
         EventResponse created = eventService.createEvent(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
