@@ -29,27 +29,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, RestAuthenticationEntryPoint restAuthenticationEntryPoint) throws Exception {
         return http
 
-                .csrf(csrf -> csrf.disable()) // 1. Disables old form protection
-                                               // (we will use JWT Token, so we don't need this)
-                .cors(cors -> cors.configure(http)) // 2. Allows API to receive requests from other sites/local front-ends
-                                                    // (avoids the famous CORS error)
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configure(http))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 3. API with "Amnesia" (Stateless). The server doesn't remember you, each request must send the Token again.
-                .authorizeHttpRequests(authorize -> authorize // 4. The Door Security (Rules of who gets in and who stays out)
-                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll() // Let system errors pass freely
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // Anyone can try to log in (Open gate)
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll() // Anyone can try to create an account (Open gate)
+                .authorizeHttpRequests(authorize -> authorize
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**"
-                        ).permitAll() // Anyone can see the events (Open gate)
-                        .anyRequest().authenticated()) // FOR ALL OTHER ROUTES: Must present the JWT Token (VIP only)
+                        ).permitAll()
+                        .anyRequest().authenticated())
+                .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-                .build(); // 5. Assembles and packages all these rules
+                .build();
     }
 
     @Bean
