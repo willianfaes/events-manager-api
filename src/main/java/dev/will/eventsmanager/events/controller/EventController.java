@@ -50,9 +50,9 @@ public class EventController {
     @GetMapping("/{id}")
     @Operation(summary = "Get event by ID", description = "Returns a single event, including its address")
     @ApiResponse(responseCode = "200", description = "Event found",
-                    content = @Content(schema = @Schema(implementation = EventResponse.class)))
+            content = @Content(schema = @Schema(implementation = EventResponse.class)))
     @ApiResponse(responseCode = "404", description = "Event not found",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
         Page<?> page = Page.<EventResponse>empty();
         PageResponse.from(page);
@@ -78,14 +78,15 @@ public class EventController {
     }
 
     @PostMapping("/{eventId}/registrations")
+    @Operation(
+            summary = "Register for an event",
+            description = "Registers the authenticated user for the specified event.")
     public ResponseEntity<EventRegistrationResponse> registerForEvent(
             @PathVariable Long eventId,
-            @AuthenticationPrincipal UserDetails loggedUser
+            @AuthenticationPrincipal String loggedUser
     ) {
-        // 1. Pegamos o e-mail que está guardado dentro do Token
-        String userEmail = loggedUser.getUsername();
+        String userEmail = loggedUser;
 
-        // 2. Passamos o E-MAIL (String) e o Event ID (Long) para a Service
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(eventService.registerUserForEvent(userEmail, eventId));
     }
