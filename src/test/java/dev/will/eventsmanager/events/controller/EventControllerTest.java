@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
+import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventAddressResponse;
+import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.service.EventService;
@@ -20,11 +23,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -33,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,6 +61,11 @@ class EventControllerTest {
 
     @MockitoBean
     private TokenService tokenService;
+
+    private static RequestPostProcessor authenticatedUser(String email) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {
         return EventCreateRequest.builder()
@@ -273,6 +286,68 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.message", containsString("street")))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.path").value("/events"));
+
+        verifyNoInteractions(eventService);
+    }
+
+    @Test
+    @DisplayName("registerForEvent should return 201 Created and registration id when authenticated user registers for existing event")
+    void registerForEvent_should_returnCreated_when_validRequestAsUser() throws Exception {
+        Long eventId = 10L;
+        Long registrationId = 1L;
+        EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId);
+
+        given(eventService.registerUserForEvent("user@example.com", eventId)).willReturn(expectedResponse);
+
+        mockMvc.perform(post("/events/{eventId}/registrations", eventId)
+                .with(authenticatedUser("user@example.com")));
+
+        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> eventIdCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(eventService).registerUserForEvent(emailCaptor.capture(), eventIdCaptor.capture());
+        assertThat(emailCaptor.getValue()).isEqualTo("user@example.com");
+        assertThat(eventIdCaptor.getValue()).isEqualTo(eventId);
+    }
+
+    @Test
+    @DisplayName("registerForEvent should return 409 Conflict when user is already registered for event")
+    void registerForEvent_should_returnConflict_when_alreadyRegistered() throws Exception {
+        Long eventId = 10L;
+
+        given(eventService.registerUserForEvent("user@example.com", eventId))
+                .willThrow(new AlreadyRegisteredException());
+
+        mockMvc.perform(post("/events/{eventId}/registrations", eventId)
+                .with(authenticatedUser("user@example.com")));
+
+        verify(eventService).registerUserForEvent("user@example.com", eventId);
+    }
+
+    @Test
+    @DisplayName("registerForEvent should return 404 Not Found when event does not exist")
+    void registerForEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
+        Long eventId = 99L;
+
+        given(eventService.registerUserForEvent("user@example.com", eventId))
+                .willThrow(new ResourceNotFoundException("Event", eventId));
+
+        mockMvc.perform(post("/events/{eventId}/registrations", eventId)
+                .with(authenticatedUser("user@example.com")));
+
+        verify(eventService).registerUserForEvent("user@example.com", eventId);
+    }
+
+    @Test
+    @DisplayName("registerForEvent should return 401 Unauthorized when request is unauthenticated")
+    void registerForEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
+        Long eventId = 10L;
+
+        mockMvc.perform(post("/events/{eventId}/registrations", eventId))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.path").value("/events/" + eventId + "/registrations"));
 
         verifyNoInteractions(eventService);
     }
