@@ -8,7 +8,6 @@ import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.users.entity.User;
-import dev.will.eventsmanager.core.exceptions.BusinessException;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
@@ -52,41 +51,25 @@ public class EventService {
 
     public EventRegistrationResponse registerUserForEvent(String userEmail, Long eventId) {
 
-        // 1. Busca o Usuário completo usando o e-mail extraído do Token
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new BusinessException("Usuário não encontrado!"));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
 
-        // 2. Busca o Evento completo (afinal, não dá pra se inscrever no que não existe)
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new BusinessException("Evento não encontrado!"));
+                .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
 
-        // 3. A ÚNICA ida ao banco para checar inscrições usando os IDs
         Optional<EventRegistration> existingOpt = eventRegistrationsRepository
                 .findByUserIdAndEventIdIncludeDeleted(user.getId(), event.getId());
 
-        // 4. Se achou alguma coisa na caixa...
         if (existingOpt.isPresent()) {
             EventRegistration registration = existingOpt.get();
-
-            // O cara tá vivinho da silva?
-            if (!registration.isDeleted()) {
-                throw new BusinessException("Você já está inscrito neste evento!");
-            }
-
-            // Se chegou aqui, é fantasma. REVIVE O CARA!
-            registration.setDeleted(false);
+            registration.restore();
             return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(registration));
         }
 
-        // 5. Se a caixa estava vazia, é inscrição 100% nova.
         EventRegistration newRegistration = new EventRegistration();
-        newRegistration.setUser(user);   // Setamos a entidade User inteira
-        newRegistration.setEvent(event); // Setamos a entidade Event inteira
+        newRegistration.setUser(user);
+        newRegistration.setEvent(event);
 
-        // (Se a sua entidade tiver uma data de inscrição, você setaria aqui:
-        // newRegistration.setRegistrationDate(LocalDateTime.now());)
-
-        // Salva no banco, passa no Mapper e devolve pro Controller
         return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(newRegistration));
     }
 
