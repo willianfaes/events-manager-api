@@ -1,0 +1,26 @@
+package dev.will.eventsmanager.users.service;
+
+import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.events.entity.EventRegistration;
+import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
+import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
+import dev.will.eventsmanager.users.mapper.MyRegistrationMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@RequiredArgsConstructor
+@Service
+@Transactional
+public class UserService {
+
+    private final EventRegistrationsRepository eventRegistrationsRepository;
+    private final MyRegistrationMapper myRegistrationMapper;
+
+    public PageResponse<MyRegistrationResponse> getUserRegisteredEvents(String loggedUser, Pageable pageable) {
+        Page<EventRegistration> page = eventRegistrationsRepository.findByUserIdWithEvent(loggedUser, pageable);
+        return PageResponse.from(page.map(myRegistrationMapper::toMyRegistrationResponse));
+    }
+}
