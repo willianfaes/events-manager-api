@@ -1,11 +1,13 @@
 package dev.will.eventsmanager.users.controller;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.pagination.PageRequests;
-import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
+import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.service.UserService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/users")
-@SecurityRequirement(name = "bearerAuth")
+@Authenticated
 public class UserController {
 
     private final UserService userService;
@@ -27,6 +29,8 @@ public class UserController {
     }
 
     @GetMapping("/me/registrations")
+    @Operation(summary = "Get user registered events")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved user registered events")
     public ResponseEntity<PageResponse<MyRegistrationResponse>> getUserRegisteredEvents(
             @AuthenticationPrincipal String loggedUser,
             @RequestParam(defaultValue = "0") int page,
