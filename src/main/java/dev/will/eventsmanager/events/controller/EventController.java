@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -85,10 +84,13 @@ public class EventController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal String loggedUser
     ) {
-        String userEmail = loggedUser;
+        EventRegistrationResponse registration = eventService.registerUserForEvent(loggedUser, eventId);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(registration.id())
+                .toUri();
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(eventService.registerUserForEvent(userEmail, eventId));
+        return ResponseEntity.created(location).body(registration);
     }
 
     @DeleteMapping("/{eventId}/registrations")

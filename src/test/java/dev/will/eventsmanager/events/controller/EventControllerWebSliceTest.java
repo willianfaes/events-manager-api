@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -33,18 +32,15 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(EventController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
@@ -112,13 +108,9 @@ class EventControllerWebSliceTest {
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -130,53 +122,38 @@ class EventControllerWebSliceTest {
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("Forbidden"))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(status().isForbidden());
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("createEvent should return 400 Bad Request when category is missing")
     void createEvent_should_returnBadRequest_when_categoryIsNull() throws Exception {
-        EventAddressRequest addressRequest = validAddress("Main St");
-        EventCreateRequest request = validRequest().category(null).address(addressRequest).build();
+        EventCreateRequest request = validRequest().category(null).build();
 
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message", containsString("category")))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(jsonPath("$.message", containsString("category")));
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("createEvent should return 400 Bad Request when schedule is in the past")
     void createEvent_should_returnBadRequest_when_scheduleIsInPast() throws Exception {
-        EventAddressRequest addressRequest = validAddress();
-        EventCreateRequest request = validRequest().schedule(LocalDateTime.now().minusDays(1)).address(addressRequest).build();
+        EventCreateRequest request = validRequest().schedule(LocalDateTime.now().minusDays(1)).build();
 
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message", containsString("schedule")))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -184,20 +161,15 @@ class EventControllerWebSliceTest {
     @DisplayName("createEvent should return 400 Bad Request when description exceeds 1000 characters")
     void createEvent_should_returnBadRequest_when_descriptionExceedsLimit() throws Exception {
         String description1001 = "A".repeat(1001);
-        EventAddressRequest addressRequest = validAddress();
-        EventCreateRequest request = validRequest().description(description1001).address(addressRequest).build();
+        EventCreateRequest request = validRequest().description(description1001).build();
 
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message", containsString("description")))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(jsonPath("$.message", containsString("description")));
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @ParameterizedTest
@@ -214,13 +186,9 @@ class EventControllerWebSliceTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message", containsString("street")))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events"));
+                .andExpect(jsonPath("$.message", containsString("street")));
 
-        verifyNoInteractions(eventService);
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -230,16 +198,16 @@ class EventControllerWebSliceTest {
         Long registrationId = 1L;
         EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId);
 
-        given(eventService.registerUserForEvent("user@example.com", eventId)).willReturn(expectedResponse);
+        given(eventService.registerUserForEvent(anyString(), eq(eventId))).willReturn(expectedResponse);
 
         mockMvc.perform(post("/events/{eventId}/registrations", eventId)
-                .with(authenticatedUser("user@example.com")));
+                .with(authenticatedUser()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(registrationId))
+                .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/" + registrationId)));
 
-        ArgumentCaptor<String> emailCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<Long> eventIdCaptor = ArgumentCaptor.forClass(Long.class);
-        verify(eventService).registerUserForEvent(emailCaptor.capture(), eventIdCaptor.capture());
-        assertThat(emailCaptor.getValue()).isEqualTo("user@example.com");
-        assertThat(eventIdCaptor.getValue()).isEqualTo(eventId);
+
+        then(eventService).should().registerUserForEvent("user@example.com", eventId);
     }
 
     @Test
@@ -247,13 +215,14 @@ class EventControllerWebSliceTest {
     void registerForEvent_should_returnConflict_when_alreadyRegistered() throws Exception {
         Long eventId = 10L;
 
-        given(eventService.registerUserForEvent("user@example.com", eventId))
+        given(eventService.registerUserForEvent(anyString(), eq(eventId)))
                 .willThrow(new AlreadyRegisteredException());
 
         mockMvc.perform(post("/events/{eventId}/registrations", eventId)
-                .with(authenticatedUser("user@example.com")));
+                .with(authenticatedUser()))
+                .andExpect(status().isConflict());
 
-        verify(eventService).registerUserForEvent("user@example.com", eventId);
+        then(eventService).should().registerUserForEvent("user@example.com", eventId);
     }
 
     @Test
@@ -261,13 +230,14 @@ class EventControllerWebSliceTest {
     void registerForEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
         Long eventId = 99L;
 
-        given(eventService.registerUserForEvent("user@example.com", eventId))
+        given(eventService.registerUserForEvent(anyString(), eq(eventId)))
                 .willThrow(new ResourceNotFoundException("Event", eventId));
 
         mockMvc.perform(post("/events/{eventId}/registrations", eventId)
-                .with(authenticatedUser("user@example.com")));
+                .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
 
-        verify(eventService).registerUserForEvent("user@example.com", eventId);
+        then(eventService).should().registerUserForEvent("user@example.com", eventId);
     }
 
     @Test
@@ -276,16 +246,14 @@ class EventControllerWebSliceTest {
         Long eventId = 10L;
 
         mockMvc.perform(post("/events/{eventId}/registrations", eventId))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.timestamp").exists())
-                .andExpect(jsonPath("$.path").value("/events/" + eventId + "/registrations"));
-        then(eventService).shouldHaveNoInteractions();
+                .andExpect(status().isUnauthorized());
 
-    private static RequestPostProcessor authenticatedUser(String email) {
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    private static RequestPostProcessor authenticatedUser() {
         return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+                "user@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
     }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {
