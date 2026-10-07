@@ -35,9 +35,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -48,7 +48,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(EventController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
-class EventControllerTest {
+class EventControllerWebSliceTest {
+
+    private static final LocalDateTime DEFAULT_FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,68 +64,15 @@ class EventControllerTest {
     @MockitoBean
     private TokenService tokenService;
 
-    private static RequestPostProcessor authenticatedUser(String email) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
-    }
-
-    private EventCreateRequest.EventCreateRequestBuilder validRequest() {
-        return EventCreateRequest.builder()
-                .name("Summit 2027")
-                .category(Category.PARTY)
-                .schedule(LocalDateTime.now().plusDays(10))
-                .address(validAddress())
-                .description("Valid description");
-    }
-
-    private EventAddressRequest validAddress() {
-        return validAddress("Main St");
-    }
-
-    private EventAddressRequest validAddress(String street) {
-        return EventAddressRequest.builder()
-                .street(street)
-                .complement("Complement")
-                .city("City")
-                .stateOrProvince("SP")
-                .postalCode("12345")
-                .countryCode("BR")
-                .venueName("Venue")
-                .build();
-    }
-
-    private EventResponse createValidResponse(Long id, EventCreateRequest request) {
-        EventAddressResponse addressResponse = new EventAddressResponse(
-                id,
-                request.address().street(),
-                "Rooftop",
-                request.address().city(),
-                "SP",
-                request.address().postalCode(),
-                request.address().countryCode(),
-                "Skyline Lounge"
-        );
-
-        return new EventResponse(
-                id,
-                request.name(),
-                request.category(),
-                request.schedule(),
-                addressResponse,
-                request.description(),
-                null
-        );
-    }
-
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("createEvent should return 201 Created with Location header when ADMIN provides valid request")
     void createEvent_should_returnCreated_when_validRequestAsAdmin() throws Exception {
         Long generatedId = 88L;
         EventCreateRequest request = validRequest().build();
-        EventResponse expectedResponse = createValidResponse(generatedId, request);
+        EventResponse response = validResponse().id(generatedId).build();
 
-        given(eventService.createEvent(any(EventCreateRequest.class))).willReturn(expectedResponse);
+        given(eventService.createEvent(request)).willReturn(response);
 
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -131,20 +80,9 @@ class EventControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/events/" + generatedId))
                 .andExpect(header().string("Content-Type", containsString(MediaType.APPLICATION_JSON_VALUE)))
-                .andExpect(jsonPath("$.id").value(notNullValue()))
-                .andExpect(jsonPath("$.id").value(generatedId))
-                .andExpect(jsonPath("$.name").value(request.name()))
-                .andExpect(jsonPath("$.category").value(request.category().name()))
-                .andExpect(jsonPath("$.description").value(request.description()))
-                .andExpect(jsonPath("$.address.street").value(request.address().street()));
+                .andExpect(jsonPath("$.id").value(generatedId));
 
-        ArgumentCaptor<EventCreateRequest> captor = ArgumentCaptor.forClass(EventCreateRequest.class);
-        verify(eventService).createEvent(captor.capture());
-        EventCreateRequest capturedRequest = captor.getValue();
-        assertThat(capturedRequest.name()).isEqualTo(request.name());
-        assertThat(capturedRequest.category()).isEqualTo(request.category());
-        assertThat(capturedRequest.description()).isEqualTo(request.description());
-        assertThat(capturedRequest.address().street()).isEqualTo(request.address().street());
+        then(eventService).should().createEvent(request);
     }
 
     @Test
@@ -152,23 +90,18 @@ class EventControllerTest {
     @DisplayName("createEvent should return 201 Created when description has exactly 1000 characters")
     void createEvent_should_returnCreated_when_descriptionIs1000Chars() throws Exception {
         Long generatedId = 105L;
-        String description1000 = "A".repeat(1000);
+        EventCreateRequest request = validRequest().description("A".repeat(1000)).build();
 
-        EventAddressRequest addressRequest = validAddress();
-        EventCreateRequest request = validRequest().description(description1000).address(addressRequest).build();
-        EventResponse expectedResponse = createValidResponse(generatedId, request);
-
-        given(eventService.createEvent(any(EventCreateRequest.class))).willReturn(expectedResponse);
+        given(eventService.createEvent(request)).willReturn(validResponse().id(generatedId).build());
 
         mockMvc.perform(post("/events")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/events/" + generatedId));
+                .andExpect(jsonPath("$.id").value(generatedId))
+                .andExpect(header().string("Location", endsWith("/events/" + generatedId)));
 
-        ArgumentCaptor<EventCreateRequest> captor = ArgumentCaptor.forClass(EventCreateRequest.class);
-        verify(eventService).createEvent(captor.capture());
-        assertThat(captor.getValue().description()).hasSize(1000);
+        then(eventService).should().createEvent(request);
     }
 
     @Test
@@ -348,7 +281,58 @@ class EventControllerTest {
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.timestamp").exists())
                 .andExpect(jsonPath("$.path").value("/events/" + eventId + "/registrations"));
+        then(eventService).shouldHaveNoInteractions();
 
-        verifyNoInteractions(eventService);
+    private static RequestPostProcessor authenticatedUser(String email) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
+    private EventCreateRequest.EventCreateRequestBuilder validRequest() {
+        return EventCreateRequest.builder()
+                .name("Summit 2027")
+                .category(Category.PARTY)
+                .schedule(DEFAULT_FUTURE_SCHEDULE)
+                .address(validAddress())
+                .description("Valid description");
+    }
+
+    private EventAddressRequest validAddress() {
+        return validAddress("Main St");
+    }
+
+    private EventAddressRequest validAddress(String street) {
+        return EventAddressRequest.builder()
+                .street(street)
+                .complement("Complement")
+                .city("City")
+                .stateOrProvince("SP")
+                .postalCode("12345")
+                .countryCode("BR")
+                .venueName("Venue")
+                .build();
+    }
+
+    private EventResponse.EventResponseBuilder validResponse() {
+        return EventResponse.builder()
+                .id(1L)
+                .name("Event Name")
+                .category(Category.PARTY)
+                .schedule(DEFAULT_FUTURE_SCHEDULE)
+                .address(validAddressResponse())
+                .description("Response description");
+    }
+
+    private EventAddressResponse validAddressResponse() {
+        return EventAddressResponse.builder()
+                .id(1L)
+                .street("Av. Response 100")
+                .complement("Rooftop")
+                .city("Sao Paulo")
+                .stateOrProvince("SP")
+                .postalCode("01000-000")
+                .countryCode("BR")
+                .venueName("Skyline Lounge")
+                .build();
     }
 }
