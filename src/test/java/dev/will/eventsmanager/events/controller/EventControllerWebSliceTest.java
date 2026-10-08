@@ -283,6 +283,30 @@ class EventControllerWebSliceTest {
         then(eventService).should().findAllEvents(expectedPageable, expectedFilter);
     }
 
+    @Test
+    @DisplayName("GET /events - should return 400 Bad Request when sort is not a valid EventSort value")
+    void getAllEvents_should_returnBadRequest_when_sortIsInvalid() throws Exception {
+        mockMvc.perform(get("/events").param("sort", "foo").with(authenticatedUser()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter sort"))
+                .andExpect(jsonPath("$.path").value("/events"));
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("GET /events - should return 400 Bad Request without leaking internals when from is not a date")
+    void getAllEvents_should_returnBadRequest_when_fromIsNotADate() throws Exception {
+        mockMvc.perform(get("/events").param("from", "abc").with(authenticatedUser()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("from: invalid value"))
+                .andExpect(jsonPath("$.path").value("/events"));
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {
         return EventCreateRequest.builder()
                 .name("Summit 2027")
