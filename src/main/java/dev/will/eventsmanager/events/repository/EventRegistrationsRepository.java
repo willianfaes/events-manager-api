@@ -12,11 +12,14 @@ import java.util.Optional;
 
 public interface EventRegistrationsRepository extends JpaRepository<EventRegistration, Long> {
 
-    @Query(value = "SELECT e FROM EventRegistration e WHERE e.user.id = :userId AND e.event.id = :eventId")
+    // Native query bypasses @SQLRestriction to find soft-deleted registrations.
+    @Query(value = "SELECT * FROM event_registrations WHERE user_id = :userId AND event_id = :eventId",
+            nativeQuery = true)
     Optional<EventRegistration> findByUserIdAndEventIdIncludeDeleted(@Param("userId") Long userId,
                                                                      @Param("eventId") Long eventId);
 
+
     @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.event e JOIN FETCH e.address WHERE r.user.email = :email",
             countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.user.email = :email")
-    Page<EventRegistration> findByUserIdWithEvent(@Param("email") String email, Pageable pageable);
+    Page<EventRegistration> findByUserEmailWithEvent(@Param("email") String email, Pageable pageable);
 }
