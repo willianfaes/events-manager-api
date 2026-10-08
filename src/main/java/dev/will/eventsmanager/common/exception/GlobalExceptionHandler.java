@@ -74,6 +74,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(HttpServletRequest request) {
 
+        log.warn("Access denied at {}", request.getRequestURI());
+
         ErrorResponse body = new ErrorResponse(
                 Instant.now(),
                 HttpStatus.FORBIDDEN.value(),
@@ -88,7 +90,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             DataIntegrityViolationException ex, HttpServletRequest request) {
 
-        log.warn("Data integrity violation at {}", request.getRequestURI(), ex);
+        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
 
         ErrorResponse body = new ErrorResponse(
                 Instant.now(),
@@ -101,10 +103,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
-            HttpMessageNotReadableException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpServletRequest request) {
 
-        log.warn("Invalid request body at {}", request.getRequestURI(), ex);
+        log.warn("Invalid request body at {}", request.getRequestURI());
 
         ErrorResponse body = new ErrorResponse(
                 Instant.now(),
@@ -119,6 +120,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(HttpServletRequest request) {
 
+        log.warn("Invalid credentials at {}", request.getRequestURI());
+
         ErrorResponse body = new ErrorResponse(
                 Instant.now(),
                 HttpStatus.UNAUTHORIZED.value(),
@@ -130,10 +133,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(
-            HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleHttpRequestMethodNotSupportedException(HttpServletRequest request) {
 
-        log.warn("HTTP method not supported at {}", request.getRequestURI(), ex);
+        log.warn("HTTP method not supported at {}", request.getRequestURI());
 
         ErrorResponse body = new ErrorResponse(
                 Instant.now(),
