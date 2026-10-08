@@ -1,5 +1,6 @@
 package dev.will.eventsmanager;
 
+import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.users.entity.Role;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.entity.UserAddress;
@@ -19,6 +20,10 @@ public class TestFixtures {
     public static RequestPostProcessor authenticatedUser() {
         return authentication(new UsernamePasswordAuthenticationToken(
                 USER_EMAIL, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
+    public static <T> PageResponse<T> emptyPage() {
+        return PageResponse.<T>builder().content(List.of()).build();
     }
 
     public static User validUser() {

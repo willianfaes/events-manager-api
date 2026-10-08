@@ -6,8 +6,10 @@ import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
+import dev.will.eventsmanager.common.pagination.EventSort;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
+import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventAddressResponse;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
@@ -21,24 +23,25 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
+import static dev.will.eventsmanager.TestFixtures.emptyPage;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -251,9 +254,33 @@ class EventControllerWebSliceTest {
         then(eventService).shouldHaveNoInteractions();
     }
 
-    private static RequestPostProcessor authenticatedUser() {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                "user@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    @Test
+    @DisplayName("GET /events - should use default pagination and DATE_ASC sort when no params are sent")
+    void getAllEvents_should_use_default_pagination_and_sort() throws Exception {
+        Pageable defaultPageable = PageRequest.of(0, 20, EventSort.DATE_ASC.toSort());
+        EventFilter noFilter = new EventFilter(null, null, null);
+        given(eventService.findAllEvents(defaultPageable, noFilter)).willReturn(emptyPage());
+
+        mockMvc.perform(get("/events").with(authenticatedUser()))
+                .andExpect(status().isOk());
+
+        then(eventService).should().findAllEvents(defaultPageable, noFilter);
+    }
+
+    @Test
+    @DisplayName("GET /events - should forward page, size, sort and filter query params to the service")
+    void getAllEvents_should_forward_query_params() throws Exception {
+        Pageable expectedPageable = PageRequest.of(2, 10, EventSort.NAME_DESC.toSort());
+        EventFilter expectedFilter = new EventFilter("rock", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 12, 31));
+        given(eventService.findAllEvents(expectedPageable, expectedFilter)).willReturn(emptyPage());
+
+        mockMvc.perform(get("/events")
+                        .param("page", "2").param("size", "10").param("sort", "NAME_DESC")
+                        .param("name", "rock").param("from", "2026-11-01").param("to", "2026-12-31")
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk());
+
+        then(eventService).should().findAllEvents(expectedPageable, expectedFilter);
     }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {
