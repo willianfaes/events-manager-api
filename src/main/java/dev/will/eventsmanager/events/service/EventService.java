@@ -3,19 +3,22 @@ package dev.will.eventsmanager.events.service;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
+import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
-import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
+import dev.will.eventsmanager.events.repository.EventSpecs;
+import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +35,9 @@ public class EventService {
     private final EventRegistrationsRepository eventRegistrationsRepository;
     private final UserRepository userRepository;
 
-    public PageResponse<EventResponse> findAllEvents(Pageable pageable) {
-        Page<Event> events = eventRepository.findAllWithAddress(pageable);
+    public PageResponse<EventResponse> findAllEvents(Pageable pageable, EventFilter filter) {
+        Specification<Event> specification = EventSpecs.from(filter);
+        Page<Event> events = eventRepository.findAll(specification, pageable);
         return PageResponse.from(events.map(eventMapper::toResponse));
     }
 
