@@ -15,17 +15,15 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.List;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
+import static dev.will.eventsmanager.TestFixtures.emptyPage;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -109,16 +107,5 @@ class UserControllerWebSliceTest {
                 .andExpect(status().isUnauthorized());
 
         then(userService).shouldHaveNoInteractions();
-    }
-
-
-
-    private static RequestPostProcessor authenticatedUser() {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                "user@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
-    }
-
-    private PageResponse<MyRegistrationResponse> emptyPage() {
-        return PageResponse.<MyRegistrationResponse>builder().content(List.of()).build();
     }
 }
