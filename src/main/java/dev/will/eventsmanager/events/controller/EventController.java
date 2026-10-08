@@ -4,6 +4,8 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.docs.AdminOnly;
 import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
+import dev.will.eventsmanager.common.pagination.EventSort;
+import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
@@ -15,7 +17,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,8 +43,11 @@ public class EventController {
     @Operation(summary = "Get all events with pagination")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved events")
     public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
-            @ParameterObject Pageable pageable,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "DATE_ASC") EventSort sort,
             @ParameterObject EventFilter filter) {
+        Pageable pageable = PageRequests.of(page, size, sort.toSort());
         PageResponse<EventResponse> events = eventService.findAllEvents(pageable, filter);
         return ResponseEntity.ok(events);
     }
@@ -54,8 +58,6 @@ public class EventController {
     @ApiResponse(responseCode = "404", description = "Event not found",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {
-        Page<?> page = Page.<EventResponse>empty();
-        PageResponse.from(page);
         EventResponse event = eventService.findEventById(id);
         return ResponseEntity.ok(event);
     }
