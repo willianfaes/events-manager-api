@@ -1,11 +1,10 @@
-package dev.will.eventsmanager.users;
+package dev.will.eventsmanager.users.controller;
 
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
-import dev.will.eventsmanager.users.controller.UserController;
 import dev.will.eventsmanager.users.dto.response.EventSummaryResponse;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.service.UserService;
