@@ -5,6 +5,7 @@ import dev.will.eventsmanager.common.docs.AdminOnly;
 import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
+import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.service.EventService;
@@ -41,9 +42,9 @@ public class EventController {
     @Operation(summary = "Get all events with pagination")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved events")
     public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
-            @ParameterObject
-            Pageable pageable) {
-        PageResponse<EventResponse> events = eventService.findAllEvents(pageable);
+            @ParameterObject Pageable pageable,
+            @ParameterObject EventFilter filter) {
+        PageResponse<EventResponse> events = eventService.findAllEvents(pageable, filter);
         return ResponseEntity.ok(events);
     }
 

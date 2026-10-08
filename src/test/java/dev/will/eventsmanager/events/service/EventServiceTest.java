@@ -4,6 +4,7 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
+import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
@@ -11,6 +12,7 @@ import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.repository.EventRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
@@ -45,6 +49,7 @@ class EventServiceTest {
 
         Event fakeEvent = new Event();
         Pageable fakePageable = PageRequest.of(0, 10);
+        EventFilter filter = new EventFilter("test", null, null);
         Page<Event> fakePage = new PageImpl<>(
                 List.of(fakeEvent),
                 fakePageable,
@@ -52,10 +57,10 @@ class EventServiceTest {
         );
         EventResponse fakeResponse = EventResponse.builder().build();
 
-        when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
+        when(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(fakePageable))).thenReturn(fakePage);
         when(eventMapper.toResponse(fakeEvent)).thenReturn(fakeResponse);
 
-        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
 
         assertThat(result.content())
                 .isNotNull()
@@ -75,9 +80,11 @@ class EventServiceTest {
         Pageable fakePageable = PageRequest.of(0, 10);
         Page<Event> fakePage = Page.empty(fakePageable);
 
-        when(eventRepository.findAllWithAddress(fakePageable)).thenReturn(fakePage);
+        when(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(fakePageable)))
+                .thenReturn(fakePage);
 
-        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable);
+        EventFilter filter = new EventFilter("test", null, null);
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
 
         assertThat(result.content()).isEmpty();
         assertThat(result.page()).isZero();
