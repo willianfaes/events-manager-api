@@ -192,7 +192,7 @@ class EventControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("registerForEvent should return 201 Created and registration id when authenticated user registers for existing event")
+    @DisplayName("POST /events/{eventId}/registrations - should return 201 Created and registration id when authenticated user registers for existing event")
     void registerForEvent_should_returnCreated_when_validRequestAsUser() throws Exception {
         Long eventId = 10L;
         Long registrationId = 1L;
@@ -211,7 +211,7 @@ class EventControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("registerForEvent should return 409 Conflict when user is already registered for event")
+    @DisplayName("POST /events/{eventId}/registrations - should return 409 Conflict when user is already registered for event")
     void registerForEvent_should_returnConflict_when_alreadyRegistered() throws Exception {
         Long eventId = 10L;
 
@@ -226,7 +226,7 @@ class EventControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("registerForEvent should return 404 Not Found when event does not exist")
+    @DisplayName("POST /events/{eventId}/registrations - should return 404 Not Found when event does not exist")
     void registerForEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
         Long eventId = 99L;
 
@@ -241,7 +241,7 @@ class EventControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("registerForEvent should return 401 Unauthorized when request is unauthenticated")
+    @DisplayName("POST /events/{eventId}/registrations - should return 401 Unauthorized when request is unauthenticated")
     void registerForEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
         Long eventId = 10L;
 
