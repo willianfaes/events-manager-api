@@ -20,7 +20,7 @@ public class UserService {
     private final MyRegistrationMapper myRegistrationMapper;
 
     public PageResponse<MyRegistrationResponse> getUserRegisteredEvents(String loggedUser, Pageable pageable) {
-        Page<EventRegistration> page = eventRegistrationsRepository.findByUserIdWithEvent(loggedUser, pageable);
+        Page<EventRegistration> page = eventRegistrationsRepository.findByUserEmailWithEvent(loggedUser, pageable);
         return PageResponse.from(page.map(myRegistrationMapper::toMyRegistrationResponse));
     }
 }
