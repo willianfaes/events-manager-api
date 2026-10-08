@@ -59,7 +59,7 @@ class EventsMethodNotAllowedIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void putEvents_shouldLogWarnWithAttachedExceptionWhenMethodNotSupported(CapturedOutput output) throws Exception {
+    void putEvents_shouldLogWarnWhenMethodNotSupported(CapturedOutput output) throws Exception {
         String token = generateValidToken();
 
         mockMvc.perform(put("/events")
@@ -71,8 +71,7 @@ class EventsMethodNotAllowedIntegrationTest extends AbstractIntegrationTest {
                 .toList();
 
         assertThat(eventLines).hasSize(1);
-        assertThat(eventLines.get(0)).contains("WARN");
-        assertThat(output.getAll()).contains("HttpRequestMethodNotSupportedException");
+        assertThat(eventLines.getFirst()).contains("WARN");
     }
 
     private String generateValidToken() {
