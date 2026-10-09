@@ -78,6 +78,16 @@ public class EventService {
     }
 
     public void unregisterUserFromEvent(Long eventId, String userEmail) {
-        // Stub: does nothing
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
+
+        EventRegistration registration = eventRegistrationsRepository
+                .findByUserIdAndEventId(user.getId(), event.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Registration", eventId));
+
+        eventRegistrationsRepository.delete(registration);
     }
 }
