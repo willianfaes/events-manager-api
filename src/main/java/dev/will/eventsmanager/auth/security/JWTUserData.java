@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Builder
-public record JWTUserData(Long userId, String email, Role role) {
+public record JWTUserData(String email, Role role) {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
