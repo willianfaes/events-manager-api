@@ -41,6 +41,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -249,6 +251,53 @@ class EventControllerWebSliceTest {
         Long eventId = 10L;
 
         mockMvc.perform(post("/events/{eventId}/registrations", eventId))
+                .andExpect(status().isUnauthorized());
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 204 No Content when authenticated user unregisters")
+    void unregisterFromEvent_should_returnNoContent_when_validRequestAsUser() throws Exception {
+        Long eventId = 10L;
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
+                        .with(authenticatedUser()))
+                .andExpect(status().isNoContent());
+
+        then(eventService).should().unregisterUserFromEvent(eventId, "user@example.com");
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 404 Not Found when event does not exist")
+    void unregisterFromEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
+        Long eventId = 99L;
+
+        willThrow(new ResourceNotFoundException("Event", eventId))
+                .given(eventService).unregisterUserFromEvent(eventId, "user@example.com");
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 404 Not Found when user has no active registration")
+    void unregisterFromEvent_should_returnNotFound_when_noActiveRegistration() throws Exception {
+        Long eventId = 10L;
+
+        willThrow(new ResourceNotFoundException("Registration", eventId))
+                .given(eventService).unregisterUserFromEvent(eventId, "user@example.com");
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 401 Unauthorized when request is unauthenticated")
+    void unregisterFromEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
+        mockMvc.perform(delete("/events/{eventId}/registrations", 10L))
                 .andExpect(status().isUnauthorized());
 
         then(eventService).shouldHaveNoInteractions();

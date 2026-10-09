@@ -8,8 +8,12 @@ import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
+import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
+import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
+import dev.will.eventsmanager.users.entity.User;
+import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -26,8 +30,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static dev.will.eventsmanager.TestFixtures.USER_EMAIL;
+import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,6 +50,12 @@ class EventServiceTest {
 
     @Mock
     EventMapper eventMapper;
+
+    @Mock
+    EventRegistrationsRepository eventRegistrationsRepository;
+
+    @Mock
+    UserRepository userRepository;
 
     @InjectMocks
     EventService eventService;
@@ -149,5 +165,56 @@ class EventServiceTest {
         EventResponse result = eventService.createEvent(request);
 
         assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void unregisterUserFromEvent_whenActiveRegistration_softDeletesIt() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).build();
+        EventRegistration registration = EventRegistration.builder().user(user).event(event).build();
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.of(registration));
+
+        eventService.unregisterUserFromEvent(eventId, USER_EMAIL);
+
+        then(eventRegistrationsRepository).should().delete(registration);
+    }
+
+    @Test
+    void unregisterUserFromEvent_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+        User user = validUser();
+        user.setId(1L);
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findById(eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_EMAIL))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+
+        then(eventRegistrationsRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void unregisterUserFromEvent_whenNoActiveRegistration_throwsResourceNotFoundException() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).build();
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_EMAIL))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Registration");
+
+        then(eventRegistrationsRepository).should(never()).delete(any());
     }
 }
