@@ -22,7 +22,9 @@ import java.time.LocalDateTime;
 
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
+import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.endsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -119,5 +121,90 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                         .with(authenticatedUser()))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 204 and remove the active registration")
+    void unregisterFromEvent_whenActiveRegistration_softDeletesIt() throws Exception {
+        User user = userRepository.save(validUser());
+        Event event = saveEvent();
+        registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        then(registrationsRepository.findByUserIdAndEventId(user.getId(), event.getId())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 404 for the registration when it was already cancelled")
+    void unregisterFromEvent_whenAlreadyUnregistered_returns404() throws Exception {
+        User user = userRepository.save(validUser());
+        Event event = saveEvent();
+        EventRegistration registration = registrationsRepository.save(
+                EventRegistration.builder().user(user).event(event).build());
+        registrationsRepository.delete(registration); // soft delete (@SQLDelete)
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("Registration")));
+    }
+
+    @Test
+    @DisplayName("DELETE /events/{eventId}/registrations - should return 404 for the event when it does not exist")
+    void unregisterFromEvent_whenEventDoesNotExist_returns404() throws Exception {
+        userRepository.save(validUser());
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", 999_999L)
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("Event")));
+    }
+
+    @Test
+    @DisplayName("DELETE then POST /events/{eventId}/registrations - should revive the same registration instead of creating a new one")
+    void unregisterFromEvent_thenRegisterAgain_reusesSameRegistration() throws Exception {
+        User user = userRepository.save(validUser());
+        Event event = saveEvent();
+        Long registrationId = registrationsRepository.save(
+                EventRegistration.builder().user(user).event(event).build()).getId();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
+    }
+
+    private Event saveEvent() {
+        EventAddress eventAddress = EventAddress.builder()
+                .street("123 Main St")
+                .city("Sample City")
+                .postalCode("12345")
+                .countryCode("US")
+                .venueName("Sample Venue")
+                .build();
+
+        return eventRepository.save(Event.builder()
+                .name("Fake Event")
+                .category(Category.CONCERT)
+                .schedule(DEFAULT_FUTURE_SCHEDULE)
+                .address(eventAddress)
+                .build());
     }
 }
