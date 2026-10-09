@@ -83,9 +83,12 @@ public class EventController {
     @Operation(
             summary = "Register for an event",
             description = "Registers the authenticated user for the specified event.")
-    @ApiResponse(responseCode = "200", description =
-            "The user has been successfully registered for the event.")
+    @ApiResponse(responseCode = "201", description =
+            "The user has been registered; Location header points to the registration. "
+                    + "A previously cancelled registration is revived.")
     @ApiResponse(responseCode = "404", description = "Event not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "The user is already registered for this event",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventRegistrationResponse> registerForEvent(
             @PathVariable Long eventId,
@@ -101,6 +104,14 @@ public class EventController {
     }
 
     @DeleteMapping("/{eventId}/registrations")
+    @Operation(
+            summary = "Unregister from an event",
+            description = "Cancels the authenticated user's active registration for the specified event. "
+                    + "The user can register again later.")
+    @ApiResponse(responseCode = "204", description = "The registration has been cancelled")
+    @ApiResponse(responseCode = "404",
+            description = "Event not found, or the user has no active registration for it (including a repeated request)",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<Void> unregisterFromEvent(@PathVariable Long eventId, Principal principal) {
         eventService.unregisterUserFromEvent(eventId, principal.getName());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
