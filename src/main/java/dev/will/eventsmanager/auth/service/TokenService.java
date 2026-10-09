@@ -7,16 +7,27 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import dev.will.eventsmanager.auth.security.JWTUserData;
 import dev.will.eventsmanager.users.entity.Role;
 import dev.will.eventsmanager.users.entity.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Optional;
 
 @Service
 public class TokenService {
 
-    private String secret = "secret";
-    final Algorithm algorithm = Algorithm.HMAC256(secret);
+    private static final int MIN_SECRET_BYTES = 32;
+
+    private final Algorithm algorithm;
+
+    public TokenService(@Value("${jwt.secret:}") String secret) {
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_BYTES) {
+            throw new IllegalArgumentException(
+                    "jwt.secret must be set and have at least " + MIN_SECRET_BYTES + " bytes (set JWT_SECRET)");
+        }
+        this.algorithm = Algorithm.HMAC256(secret);
+    }
 
     public String generateToken(User user){
         return JWT.create()
