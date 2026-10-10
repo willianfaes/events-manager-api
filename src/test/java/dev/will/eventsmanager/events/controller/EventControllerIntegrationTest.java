@@ -67,6 +67,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CONCERT)
                 .schedule(LocalDateTime.of(2026, 9, 18, 20, 0))
                 .address(address)
+                .capacity(100)
                 .build();
 
         Event saved = eventRepository.save(event);
@@ -106,6 +107,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CONCERT)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(eventAddress)
+                .capacity(100)
                 .build());
 
         EventRegistration registration = registrationsRepository.save(
@@ -236,6 +238,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CONCERT)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(eventAddress)
+                .capacity(100)
                 .build());
     }
 }

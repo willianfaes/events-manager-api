@@ -80,6 +80,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
                 .category(Category.CONCERT)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(address)
+                .capacity(100)
                 .build());
     }
 

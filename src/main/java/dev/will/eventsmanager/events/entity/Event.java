@@ -42,6 +42,9 @@ public class Event {
     @Column(length = 1000)
     private String description;
 
+    @Column(nullable = false)
+    private int capacity;
+
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     private List<EventRegistration> registrations;
 

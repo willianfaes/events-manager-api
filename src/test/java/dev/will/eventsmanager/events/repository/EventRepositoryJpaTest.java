@@ -113,7 +113,7 @@ class EventRepositoryJpaTest {
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
-        assertThat(Hibernate.isInitialized(result.getContent().get(0).getAddress())).isTrue();
+        assertThat(Hibernate.isInitialized(result.getContent().getFirst().getAddress())).isTrue();
     }
 
     private void saveEvent(String name, LocalDateTime schedule) {
@@ -129,6 +129,7 @@ class EventRepositoryJpaTest {
                 .category(Category.PARTY)
                 .schedule(schedule)
                 .address(address)
+                .capacity(100)
                 .build();
 
         em.persistAndFlush(event);

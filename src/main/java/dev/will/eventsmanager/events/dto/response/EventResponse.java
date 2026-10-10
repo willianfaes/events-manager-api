@@ -13,6 +13,7 @@ public record EventResponse(
         Category category,
         LocalDateTime schedule,
         EventAddressResponse address,
-        String description
+        String description,
+        int capacity
 ) {
 }
