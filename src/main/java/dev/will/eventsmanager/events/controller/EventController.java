@@ -71,7 +71,7 @@ public class EventController {
     @AdminOnly
     @Operation(summary = "Create an event", description = "Creates a new event. Requires ADMIN role.")
     @ApiResponse(responseCode = "201", description = "Event created; Location header points to the new resource")
-    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. missing category, schedule in the past)",
+    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. missing category, non-positive capacity, schedule in the past)",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest request) {
         EventResponse created = eventService.createEvent(request);
@@ -92,7 +92,8 @@ public class EventController {
                     + "A previously cancelled registration is revived.")
     @ApiResponse(responseCode = "404", description = "Event not found",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    @ApiResponse(responseCode = "409", description = "The user is already registered for this event",
+    @ApiResponse(responseCode = "409",
+            description = "The user is already registered for this event, or the event is full",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventRegistrationResponse> registerForEvent(
             @PathVariable Long eventId,
