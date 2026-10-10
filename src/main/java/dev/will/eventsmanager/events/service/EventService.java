@@ -75,15 +75,24 @@ public class EventService {
 
         if (existingOpt.isPresent()) {
             EventRegistration registration = existingOpt.get();
+            if (registration.isDeleted()) {
+                ensureEventHasRoom(event);
+            }
             registration.restore();
             return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(registration));
         }
+
+        ensureEventHasRoom(event);
 
         EventRegistration newRegistration = new EventRegistration();
         newRegistration.setUser(user);
         newRegistration.setEvent(event);
 
         return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(newRegistration));
+    }
+
+    private void ensureEventHasRoom(Event event) {
+        event.ensureHasRoom(eventRegistrationsRepository.countByEventId(event.getId()));
     }
 
     public void unregisterUserFromEvent(Long eventId, String userEmail) {

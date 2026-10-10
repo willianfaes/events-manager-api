@@ -14,6 +14,8 @@ public interface EventRegistrationsRepository extends JpaRepository<EventRegistr
 
     Optional<EventRegistration> findByUserIdAndEventId(Long userId, Long eventId);
 
+    long countByEventId(Long eventId);
+
     // Native query bypasses @SQLRestriction to find soft-deleted registrations.
     @Query(value = "SELECT * FROM event_registrations WHERE user_id = :userId AND event_id = :eventId",
             nativeQuery = true)
