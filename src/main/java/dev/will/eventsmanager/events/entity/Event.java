@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.entity;
 
+import dev.will.eventsmanager.common.exception.EventFullException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -58,4 +59,10 @@ public class Event {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
+
+    public void ensureHasRoom(long activeRegistrations) {
+        if (activeRegistrations >= capacity) {
+            throw new EventFullException();
+        }
+    }
 }

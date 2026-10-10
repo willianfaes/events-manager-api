@@ -1,11 +1,14 @@
 package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
+import dev.will.eventsmanager.common.exception.EventFullException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
+import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
@@ -254,5 +257,89 @@ class EventServiceTest {
                 .hasMessageContaining("Event");
 
         then(eventRegistrationsRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void registerUserForEvent_whenEventIsFull_throwsEventFullException() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).capacity(2).build();
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
+                .willReturn(Optional.empty());
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
+
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+                .isInstanceOf(EventFullException.class)
+                .hasMessageContaining("full");
+
+        then(eventRegistrationsRepository).should(never()).save(any());
+    }
+
+    @Test
+    void registerUserForEvent_whenAlreadyRegisteredAndEventIsFull_throwsAlreadyRegisteredException() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).capacity(2).build();
+        EventRegistration active = EventRegistration.builder().user(user).event(event).build();
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
+                .willReturn(Optional.of(active));
+
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+                .isInstanceOf(AlreadyRegisteredException.class)
+                .hasMessageContaining("already registered");
+
+        then(eventRegistrationsRepository).should(never()).save(any());
+    }
+
+    @Test
+    void registerUserForEvent_whenASpotWasFreed_registersTheUser() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(2L);
+        Event event = Event.builder().id(eventId).capacity(2).build();
+        EventRegistration saved = EventRegistration.builder().id(7L).user(user).event(event).build();
+        EventRegistrationResponse expected = new EventRegistrationResponse(7L);
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(2L, eventId))
+                .willReturn(Optional.empty());
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(1L);
+        given(eventRegistrationsRepository.save(any(EventRegistration.class))).willReturn(saved);
+        given(eventRegistrationMapper.toResponse(saved)).willReturn(expected);
+
+        EventRegistrationResponse result = eventService.registerUserForEvent(USER_EMAIL, eventId);
+
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void registerUserForEvent_whenCancelledAndEventIsFull_throwsEventFullAndKeepsItCancelled() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).capacity(2).build();
+        EventRegistration cancelled = EventRegistration.builder()
+                .user(user).event(event).deleted(true).build();
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
+                .willReturn(Optional.of(cancelled));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
+
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+                .isInstanceOf(EventFullException.class);
+
+        assertThat(cancelled.isDeleted()).isTrue();
+        then(eventRegistrationsRepository).should(never()).save(any());
     }
 }
