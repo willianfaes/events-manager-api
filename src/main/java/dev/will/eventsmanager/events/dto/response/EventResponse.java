@@ -4,7 +4,6 @@ import dev.will.eventsmanager.events.entity.Category;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Builder
 public record EventResponse(
@@ -14,7 +13,6 @@ public record EventResponse(
         Category category,
         LocalDateTime schedule,
         EventAddressResponse address,
-        String description,
-        List<EventRegistrationResponse> registrations
+        String description
 ) {
 }

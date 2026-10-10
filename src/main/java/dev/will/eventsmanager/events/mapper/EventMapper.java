@@ -6,7 +6,7 @@ import dev.will.eventsmanager.events.entity.Event;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {EventAddressMapper.class, EventRegistrationMapper.class})
+@Mapper(componentModel = "spring", uses = EventAddressMapper.class)
 public interface EventMapper {
 
     @Mapping(target = "id", ignore = true)

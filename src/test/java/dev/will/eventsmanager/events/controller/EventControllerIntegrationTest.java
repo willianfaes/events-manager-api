@@ -191,6 +191,37 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
     }
 
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /events/{eventId}/registrations - should list only active registrations, sorted by user name")
+    void getEventAttendees_whenOneRegistrationWasCancelled_listsOnlyActiveOnes() throws Exception {
+        User bruno = userRepository.save(userNamed("Bruno", "bruno@example.com"));
+        User ana = userRepository.save(userNamed("Ana", "ana@example.com"));
+        User carla = userRepository.save(userNamed("Carla", "carla@example.com"));
+        Event event = saveEvent();
+        registrationsRepository.save(EventRegistration.builder().user(bruno).event(event).build());
+        registrationsRepository.save(EventRegistration.builder().user(ana).event(event).build());
+        EventRegistration cancelled = registrationsRepository.save(
+                EventRegistration.builder().user(carla).event(event).build());
+        registrationsRepository.delete(cancelled); // soft delete (@SQLDelete)
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{eventId}/registrations", event.getId()).param("sort", "NAME_ASC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Ana"))
+                .andExpect(jsonPath("$.content[0].email").value("ana@example.com"))
+                .andExpect(jsonPath("$.content[1].name").value("Bruno"));
+    }
+
+    private User userNamed(String name, String email) {
+        User user = validUser();
+        user.setName(name);
+        user.setEmail(email);
+        return user;
+    }
+
     private Event saveEvent() {
         EventAddress eventAddress = EventAddress.builder()
                 .street("123 Main St")

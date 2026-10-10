@@ -4,6 +4,7 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
+import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Event;
@@ -51,6 +52,14 @@ public class EventService {
         Event entity = eventMapper.toEntity(eventCreateRequest);
         Event saved = eventRepository.save(entity);
         return eventMapper.toResponse(saved);
+    }
+
+    public PageResponse<EventAttendeeResponse> findEventAttendees(Long eventId, Pageable pageable) {
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event", eventId);
+        }
+        Page<EventRegistration> registrations = eventRegistrationsRepository.findByEventIdWithUser(eventId, pageable);
+        return PageResponse.from(registrations.map(eventRegistrationMapper::toAttendee));
     }
 
     public EventRegistrationResponse registerUserForEvent(String userEmail, Long eventId) {
