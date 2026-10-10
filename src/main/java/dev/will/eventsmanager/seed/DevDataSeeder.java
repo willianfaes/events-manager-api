@@ -47,6 +47,7 @@ class DevDataSeeder implements CommandLineRunner {
                     .schedule(LocalDateTime.now(ZoneId.systemDefault()).plusDays(faker.number().numberBetween(1, 90)))
                     .address(address)
                     .description(faker.lorem().paragraph())
+                    .capacity(faker.number().numberBetween(20, 200))
                     .build();
 
             eventRepository.save(event);

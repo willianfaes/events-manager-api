@@ -82,9 +82,41 @@ class EventControllerWebSliceTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/events/" + generatedId))
                 .andExpect(header().string("Content-Type", containsString(MediaType.APPLICATION_JSON_VALUE)))
-                .andExpect(jsonPath("$.id").value(generatedId));
+                .andExpect(jsonPath("$.id").value(generatedId))
+                .andExpect(jsonPath("$.capacity").value(50));
 
         then(eventService).should().createEvent(request);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("POST /events - should return 400 Bad Request when capacity is missing")
+    void createEvent_should_returnBadRequest_when_capacityIsMissing() throws Exception {
+        EventCreateRequest request = validRequest().capacity(null).build();
+
+        mockMvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("capacity")));
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("POST /events - should return 400 Bad Request when capacity is zero or negative")
+    void createEvent_should_returnBadRequest_when_capacityIsNotPositive(int invalidCapacity) throws Exception {
+        EventCreateRequest request = validRequest().capacity(invalidCapacity).build();
+
+        mockMvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("capacity")));
+
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -400,7 +432,8 @@ class EventControllerWebSliceTest {
                 .category(Category.PARTY)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(validAddress())
-                .description("Valid description");
+                .description("Valid description")
+                .capacity(50);
     }
 
     private EventAddressRequest validAddress() {
@@ -426,7 +459,8 @@ class EventControllerWebSliceTest {
                 .category(Category.PARTY)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(validAddressResponse())
-                .description("Response description");
+                .description("Response description")
+                .capacity(50);
     }
 
     private EventAddressResponse validAddressResponse() {
