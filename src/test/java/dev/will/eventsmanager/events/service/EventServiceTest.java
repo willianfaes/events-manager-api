@@ -267,7 +267,7 @@ class EventServiceTest {
         Event event = Event.builder().id(eventId).capacity(2).build();
 
         given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.empty());
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
@@ -288,7 +288,7 @@ class EventServiceTest {
         EventRegistration active = EventRegistration.builder().user(user).event(event).build();
 
         given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.of(active));
 
@@ -309,7 +309,7 @@ class EventServiceTest {
         EventRegistrationResponse expected = new EventRegistrationResponse(7L);
 
         given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(2L, eventId))
                 .willReturn(Optional.empty());
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(1L);
@@ -331,7 +331,7 @@ class EventServiceTest {
                 .user(user).event(event).deleted(true).build();
 
         given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
-        given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.of(cancelled));
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);

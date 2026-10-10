@@ -67,7 +67,7 @@ public class EventService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
 
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
 
         Optional<EventRegistration> existingOpt = eventRegistrationsRepository
