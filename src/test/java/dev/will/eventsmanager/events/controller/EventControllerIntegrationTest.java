@@ -14,16 +14,21 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.endsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -194,6 +199,36 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("DELETE then POST /events/{eventId}/registrations - should give the freed spot to another user and keep the event full")
+    void unregisterFromEvent_thenAnotherUserRegisters_takesTheFreedSpot() throws Exception {
+        User holder = userRepository.save(validUser());
+        userRepository.save(userNamed("Bruno", "bruno@example.com"));
+        Event event = saveEvent(1);
+        registrationsRepository.save(EventRegistration.builder().user(holder).event(event).build());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+                        .with(asUser("bruno@example.com")))
+                .andExpect(status().isCreated());
+        entityManager.flush();
+        entityManager.clear();
+
+        then(registrationsRepository.countByEventId(event.getId())).isEqualTo(1);
+
+        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("full")));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /events/{eventId}/registrations - should list only active registrations, sorted by user name")
     void getEventAttendees_whenOneRegistrationWasCancelled_listsOnlyActiveOnes() throws Exception {
@@ -224,7 +259,16 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         return user;
     }
 
+    private RequestPostProcessor asUser(String email) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
     private Event saveEvent() {
+        return saveEvent(100);
+    }
+
+    private Event saveEvent(int capacity) {
         EventAddress eventAddress = EventAddress.builder()
                 .street("123 Main St")
                 .city("Sample City")
@@ -238,7 +282,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .category(Category.CONCERT)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(eventAddress)
-                .capacity(100)
+                .capacity(capacity)
                 .build());
     }
 }
