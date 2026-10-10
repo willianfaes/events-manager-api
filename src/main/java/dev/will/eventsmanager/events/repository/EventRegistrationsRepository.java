@@ -23,4 +23,8 @@ public interface EventRegistrationsRepository extends JpaRepository<EventRegistr
     @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.event e JOIN FETCH e.address WHERE r.user.email = :email",
             countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.user.email = :email")
     Page<EventRegistration> findByUserEmailWithEvent(@Param("email") String email, Pageable pageable);
+
+    @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.user WHERE r.event.id = :eventId",
+            countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.event.id = :eventId")
+    Page<EventRegistration> findByEventIdWithUser(@Param("eventId") Long eventId, Pageable pageable);
 }

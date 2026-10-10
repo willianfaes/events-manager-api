@@ -6,6 +6,7 @@ import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
+import dev.will.eventsmanager.common.pagination.AttendeeSort;
 import dev.will.eventsmanager.common.pagination.EventSort;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
@@ -354,6 +355,43 @@ class EventControllerWebSliceTest {
                 .andExpect(jsonPath("$.path").value("/events"));
 
         then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /events/{eventId}/registrations - should return 200 and use default pagination and NEWEST sort when ADMIN sends no params")
+    void getEventAttendees_should_returnOk_when_adminWithDefaultParams() throws Exception {
+        Long eventId = 10L;
+        Pageable defaultPageable = PageRequest.of(0, 20, AttendeeSort.NEWEST.toSort());
+        given(eventService.findEventAttendees(eventId, defaultPageable)).willReturn(emptyPage());
+
+        mockMvc.perform(get("/events/{eventId}/registrations", eventId))
+                .andExpect(status().isOk());
+
+        then(eventService).should().findEventAttendees(eventId, defaultPageable);
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("GET /events/{eventId}/registrations - should return 403 Forbidden when user has insufficient role")
+    void getEventAttendees_should_returnForbidden_when_roleIsUser() throws Exception {
+        mockMvc.perform(get("/events/{eventId}/registrations", 10L))
+                .andExpect(status().isForbidden());
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("GET /events/{eventId}/registrations - should return 404 Not Found when event does not exist")
+    void getEventAttendees_should_returnNotFound_when_eventDoesNotExist() throws Exception {
+        Long eventId = 99L;
+        Pageable defaultPageable = PageRequest.of(0, 20, AttendeeSort.NEWEST.toSort());
+        given(eventService.findEventAttendees(eventId, defaultPageable))
+                .willThrow(new ResourceNotFoundException("Event", eventId));
+
+        mockMvc.perform(get("/events/{eventId}/registrations", eventId))
+                .andExpect(status().isNotFound());
     }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {

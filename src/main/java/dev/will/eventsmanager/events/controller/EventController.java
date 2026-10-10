@@ -4,10 +4,12 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.docs.AdminOnly;
 import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
+import dev.will.eventsmanager.common.pagination.AttendeeSort;
 import dev.will.eventsmanager.common.pagination.EventSort;
 import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
+import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.service.EventService;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +34,7 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/events")
 @Authenticated
+@Tag(name = "Events", description = "Events and their registrations")
 public class EventController {
 
     private final EventService eventService;
@@ -115,5 +119,23 @@ public class EventController {
     public ResponseEntity<Void> unregisterFromEvent(@PathVariable Long eventId, Principal principal) {
         eventService.unregisterUserFromEvent(eventId, principal.getName());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @GetMapping("/{eventId}/registrations")
+    @PreAuthorize("hasRole('ADMIN')")
+    @AdminOnly
+    @Operation(
+            summary = "List the attendees of an event",
+            description = "Returns the active registrations of the event, paginated. Requires ADMIN role.")
+    @ApiResponse(responseCode = "200", description = "Page of the event's attendees")
+    @ApiResponse(responseCode = "404", description = "Event not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<PageResponse<EventAttendeeResponse>> getEventAttendees(
+            @PathVariable Long eventId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "NEWEST") AttendeeSort sort) {
+        Pageable pageable = PageRequests.of(page, size, sort.toSort());
+        return ResponseEntity.ok(eventService.findEventAttendees(eventId, pageable));
     }
 }

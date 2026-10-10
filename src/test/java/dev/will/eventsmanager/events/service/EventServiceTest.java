@@ -5,11 +5,13 @@ import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
+import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
+import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
 import dev.will.eventsmanager.users.entity.User;
@@ -50,6 +52,9 @@ class EventServiceTest {
 
     @Mock
     EventMapper eventMapper;
+
+    @Mock
+    EventRegistrationMapper eventRegistrationMapper;
 
     @Mock
     EventRegistrationsRepository eventRegistrationsRepository;
@@ -216,5 +221,38 @@ class EventServiceTest {
                 .hasMessageContaining("Registration");
 
         then(eventRegistrationsRepository).should(never()).delete(any());
+    }
+
+    @Test
+    void findEventAttendees_whenEventExists_returnsMappedPage() {
+        Long eventId = 10L;
+        Pageable pageable = PageRequest.of(0, 20);
+        EventRegistration registration = EventRegistration.builder().id(5L).build();
+        EventAttendeeResponse attendee =
+                new EventAttendeeResponse(5L, 1L, "Ana", "ana@example.com", LocalDateTime.now());
+
+        given(eventRepository.existsById(eventId)).willReturn(true);
+        given(eventRegistrationsRepository.findByEventIdWithUser(eventId, pageable))
+                .willReturn(new PageImpl<>(List.of(registration), pageable, 1L));
+        given(eventRegistrationMapper.toAttendee(registration)).willReturn(attendee);
+
+        PageResponse<EventAttendeeResponse> result = eventService.findEventAttendees(eventId, pageable);
+
+        assertThat(result.content()).containsExactly(attendee);
+        assertThat(result.totalElements()).isEqualTo(1L);
+    }
+
+    @Test
+    void findEventAttendees_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+        Pageable pageable = PageRequest.of(0, 20);
+
+        given(eventRepository.existsById(eventId)).willReturn(false);
+
+        assertThatThrownBy(() -> eventService.findEventAttendees(eventId, pageable))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+
+        then(eventRegistrationsRepository).shouldHaveNoInteractions();
     }
 }
