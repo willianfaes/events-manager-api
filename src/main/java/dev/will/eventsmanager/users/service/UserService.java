@@ -4,12 +4,15 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
+import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.mapper.MyRegistrationMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 @RequiredArgsConstructor
 @Service
@@ -22,5 +25,10 @@ public class UserService {
     public PageResponse<MyRegistrationResponse> getUserRegisteredEvents(String loggedUser, Pageable pageable) {
         Page<EventRegistration> page = eventRegistrationsRepository.findByUserEmailWithEvent(loggedUser, pageable);
         return PageResponse.from(page.map(myRegistrationMapper::toMyRegistrationResponse));
+    }
+
+    public RegisteredEventsResponse findRegisteredEventIds(String loggedUser, Set<Long> eventIds) {
+        return new RegisteredEventsResponse(
+                eventRegistrationsRepository.findRegisteredEventIds(loggedUser, eventIds));
     }
 }
