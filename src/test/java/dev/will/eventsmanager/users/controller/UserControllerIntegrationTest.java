@@ -66,6 +66,39 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
                 .andExpect(jsonPath("$.content[0].registrationId").value(active.getId()));
     }
 
+    @Test
+    @DisplayName("GET /users/me/registrations/events - should return only the active registrations of the logged user")
+    void getRegisteredEventIds_shouldReturnOnlyTheLoggedUsersActiveRegistrations() throws Exception {
+        User user = userRepository.save(validUser());
+        User other = validUser();
+        other.setEmail("other@example.com");
+        other = userRepository.save(other);
+
+        Event registered = saveEvent("Registered");
+        Event cancelled = saveEvent("Cancelled");
+        Event notRegistered = saveEvent("Not registered");
+        Event onlyOther = saveEvent("Only the other user");
+
+        registrationsRepository.save(EventRegistration.builder().user(user).event(registered).build());
+        EventRegistration cancelledRegistration = registrationsRepository.save(
+                EventRegistration.builder().user(user).event(cancelled).build());
+        registrationsRepository.save(EventRegistration.builder().user(other).event(onlyOther).build());
+
+        registrationsRepository.delete(cancelledRegistration); // soft delete (@SQLDelete)
+        entityManager.flush();
+        entityManager.clear();
+
+        String ids = String.join(",",
+                registered.getId().toString(), cancelled.getId().toString(), notRegistered.getId().toString(),
+                onlyOther.getId().toString(), "999999", registered.getId().toString());
+
+        mockMvc.perform(get("/users/me/registrations/events").param("eventIds", ids)
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventIds.length()").value(1))
+                .andExpect(jsonPath("$.eventIds[0]").value(registered.getId()));
+    }
+
     private Event saveEvent(String name) {
         EventAddress address = EventAddress.builder()
                 .street("123 Main St")

@@ -5,7 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 public final class PageRequests {
-    private static final int MAX_SIZE = 50;
+    public static final int MAX_SIZE = 50;
     private PageRequests() {}
 
     public static Pageable of(int page, int size, Sort sort) {

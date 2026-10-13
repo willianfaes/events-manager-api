@@ -5,9 +5,12 @@ import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
+import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +18,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Set;
 
 
 @RestController
@@ -41,5 +46,13 @@ public class UserController {
         PageResponse<MyRegistrationResponse> registeredEvents =
                 userService.getUserRegisteredEvents(loggedUser, pageable);
         return ResponseEntity.ok(registeredEvents);
+    }
+
+    @GetMapping("/me/registrations/events")
+    public ResponseEntity<RegisteredEventsResponse> getRegisteredEventIds(
+            @AuthenticationPrincipal String loggedUser,
+            @RequestParam @NotEmpty @Size(max = PageRequests.MAX_SIZE) Set<Long> eventIds
+    ) {
+        return ResponseEntity.ok(userService.findRegisteredEventIds(loggedUser, eventIds));
     }
 }
