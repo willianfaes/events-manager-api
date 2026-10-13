@@ -52,7 +52,7 @@ class EventControllerWebSliceTest {
     void registerForEvent_should_returnCreated_when_validRequestAsUser() throws Exception {
         Long eventId = 10L;
         Long registrationId = 1L;
-        EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId);
+        EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId, eventId);
 
         given(eventService.registerUserForEvent(anyString(), eq(eventId))).willReturn(expectedResponse);
 
@@ -60,6 +60,7 @@ class EventControllerWebSliceTest {
                 .with(authenticatedUser()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(registrationId))
+                .andExpect(jsonPath("$.eventId").value(eventId))
                 .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/" + registrationId)));
 
 

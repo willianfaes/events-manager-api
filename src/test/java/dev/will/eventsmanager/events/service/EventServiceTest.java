@@ -306,7 +306,7 @@ class EventServiceTest {
         user.setId(2L);
         Event event = Event.builder().id(eventId).capacity(2).build();
         EventRegistration saved = EventRegistration.builder().id(7L).user(user).event(event).build();
-        EventRegistrationResponse expected = new EventRegistrationResponse(7L);
+        EventRegistrationResponse expected = new EventRegistrationResponse(7L, eventId);
 
         given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));

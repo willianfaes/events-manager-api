@@ -127,6 +127,8 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
                         .with(authenticatedUser()))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(registrationId))
+                .andExpect(jsonPath("$.eventId").value(event.getId()))
                 .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
     }
 
