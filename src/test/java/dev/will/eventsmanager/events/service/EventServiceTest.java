@@ -227,6 +227,54 @@ class EventServiceTest {
     }
 
     @Test
+    void findUserRegistration_whenActiveRegistration_returnsIt() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).build();
+        EventRegistration registration = EventRegistration.builder().id(7L).user(user).event(event).build();
+        EventRegistrationResponse expected = new EventRegistrationResponse(7L, eventId);
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.existsById(eventId)).willReturn(true);
+        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.of(registration));
+        given(eventRegistrationMapper.toResponse(registration)).willReturn(expected);
+
+        EventRegistrationResponse result = eventService.findUserRegistration(eventId, USER_EMAIL);
+
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void findUserRegistration_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+        User user = validUser();
+        user.setId(1L);
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.existsById(eventId)).willReturn(false);
+
+        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_EMAIL))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+    }
+
+    @Test
+    void findUserRegistration_whenNoActiveRegistration_throwsResourceNotFoundException() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+
+        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(eventRepository.existsById(eventId)).willReturn(true);
+        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_EMAIL))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Registration");
+    }
+
+    @Test
     void findEventAttendees_whenEventExists_returnsMappedPage() {
         Long eventId = 10L;
         Pageable pageable = PageRequest.of(0, 20);

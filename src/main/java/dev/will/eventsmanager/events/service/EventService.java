@@ -95,6 +95,21 @@ public class EventService {
         event.ensureHasRoom(eventRegistrationsRepository.countByEventId(event.getId()));
     }
 
+    public EventRegistrationResponse findUserRegistration(Long eventId, String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+
+        if (!eventRepository.existsById(eventId)) {
+            throw new ResourceNotFoundException("Event", eventId);
+        }
+
+        EventRegistration registration = eventRegistrationsRepository
+                .findByUserIdAndEventId(user.getId(), eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Registration", eventId));
+
+        return eventRegistrationMapper.toResponse(registration);
+    }
+
     public void unregisterUserFromEvent(Long eventId, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));

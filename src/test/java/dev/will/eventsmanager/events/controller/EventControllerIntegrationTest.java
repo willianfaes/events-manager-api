@@ -133,6 +133,34 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("GET /events/{eventId}/registrations/me - should return the registration, then 404 after cancelling")
+    void getMyRegistration_whenRegisteredThenCancelled_returnsItThenNotFound() throws Exception {
+        userRepository.save(validUser());
+        Event event = saveEvent();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/events/{eventId}/registrations/me", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.eventId").value(event.getId()));
+
+        mockMvc.perform(delete("/events/{eventId}/registrations", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{eventId}/registrations/me", event.getId())
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @DisplayName("DELETE /events/{eventId}/registrations - should return 204 and remove the active registration")
     void unregisterFromEvent_whenActiveRegistration_softDeletesIt() throws Exception {
         User user = userRepository.save(validUser());

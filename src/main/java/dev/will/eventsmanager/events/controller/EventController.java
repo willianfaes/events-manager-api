@@ -85,6 +85,21 @@ public class EventController {
         return ResponseEntity.created(location).body(registration);
     }
 
+    @GetMapping("/{eventId}/registrations/me")
+    @Operation(
+            summary = "Get my registration for an event",
+            description = "Returns the authenticated user's active registration for the specified event.")
+    @ApiResponse(responseCode = "200", description = "The user is registered for the event")
+    @ApiResponse(responseCode = "404",
+            description = "Event not found, or the user has no active registration for it (including a cancelled one)",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<EventRegistrationResponse> getMyRegistration(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal String loggedUser
+    ) {
+        return ResponseEntity.ok(eventService.findUserRegistration(eventId, loggedUser));
+    }
+
     @DeleteMapping("/{eventId}/registrations")
     @Operation(
             summary = "Unregister from an event",
