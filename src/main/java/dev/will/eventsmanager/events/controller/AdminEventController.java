@@ -19,9 +19,11 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -57,6 +59,40 @@ public class AdminEventController {
                 .toUri();
 
         return ResponseEntity.created(location).body(created);
+    }
+
+    @PutMapping("/{eventId}")
+    @AdminOnly
+    @Operation(
+            summary = "Update an event",
+            description = "Replaces the whole event, with the same rules as creation. Requires ADMIN role.")
+    @ApiResponse(responseCode = "200", description = "Event updated; the body shows the new values")
+    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. blank name, schedule in the past, missing address) or unreadable body",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Event not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Capacity is lower than the number of active registrations",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<EventResponse> updateEvent(
+            @PathVariable Long eventId,
+            @Valid @RequestBody EventCreateRequest request) {
+        return ResponseEntity.ok(eventService.updateEvent(eventId, request));
+    }
+
+    @DeleteMapping("/{eventId}")
+    @AdminOnly
+    @Operation(
+            summary = "Delete an event",
+            description = "Removes an event that has no active registrations, meant for events created by mistake. "
+                    + "Requires ADMIN role.")
+    @ApiResponse(responseCode = "204", description = "Event deleted")
+    @ApiResponse(responseCode = "404", description = "Event not found or already deleted",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "The event has active registrations",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<Void> deleteEvent(@PathVariable Long eventId) {
+        eventService.deleteEvent(eventId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{eventId}/registrations")

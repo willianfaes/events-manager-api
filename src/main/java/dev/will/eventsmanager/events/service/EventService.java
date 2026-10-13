@@ -1,6 +1,8 @@
 package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
+import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
@@ -52,6 +54,31 @@ public class EventService {
         Event entity = eventMapper.toEntity(eventCreateRequest);
         Event saved = eventRepository.save(entity);
         return eventMapper.toResponse(saved);
+    }
+
+    public EventResponse updateEvent(Long eventId, EventCreateRequest request) {
+        Event event = eventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
+
+        long activeRegistrations = eventRegistrationsRepository.countByEventId(eventId);
+        if (request.capacity() < activeRegistrations) {
+            throw new CapacityBelowRegistrationsException(activeRegistrations);
+        }
+
+        eventMapper.updateEntity(request, event);
+        return eventMapper.toResponse(event);
+    }
+
+    public void deleteEvent(Long eventId) {
+        Event event = eventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
+
+        long activeRegistrations = eventRegistrationsRepository.countByEventId(eventId);
+        if (activeRegistrations > 0) {
+            throw new EventHasActiveRegistrationsException(activeRegistrations);
+        }
+
+        eventRepository.delete(event);
     }
 
     public PageResponse<EventAttendeeResponse> findEventAttendees(Long eventId, Pageable pageable) {

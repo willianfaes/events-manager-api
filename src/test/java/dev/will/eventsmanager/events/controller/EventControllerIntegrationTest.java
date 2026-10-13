@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Transactional
@@ -283,16 +285,109 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[1].name").value("Bruno"));
     }
 
-    private User userNamed(String name, String email) {
-        User user = validUser();
-        user.setName(name);
-        user.setEmail(email);
-        return user;
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should replace the event and edit its address in place")
+    void updateEvent_whenValidRequest_updatesTheEventAndKeepsTheSameAddressRow() throws Exception {
+        Event event = saveEvent();
+        Long addressId = event.getAddress().getId();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(put("/admin/events/{eventId}", event.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody(80)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Renamed Event"))
+                .andExpect(jsonPath("$.capacity").value(80))
+                .andExpect(jsonPath("$.address.city").value("New City"))
+                .andExpect(jsonPath("$.address.id").value(addressId));
+        entityManager.flush();
+        entityManager.clear();
+
+        Event reloaded = eventRepository.findByIdWithAddress(event.getId()).orElseThrow();
+        then(reloaded.getName()).isEqualTo("Renamed Event");
+        then(reloaded.getAddress().getId()).isEqualTo(addressId);
     }
 
-    private RequestPostProcessor asUser(String email) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 409 and keep the event when capacity is below the active registrations")
+    void updateEvent_whenCapacityBelowActiveRegistrations_returnsConflictAndKeepsTheEvent() throws Exception {
+        Event event = saveEvent(3);
+        User first = userRepository.save(validUser());
+        User second = validUser();
+        second.setEmail("second@example.com");
+        second = userRepository.save(second);
+        registrationsRepository.save(EventRegistration.builder().user(first).event(event).build());
+        registrationsRepository.save(EventRegistration.builder().user(second).event(event).build());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(put("/admin/events/{eventId}", event.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody(1)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value(Matchers.containsString("2")));
+        entityManager.flush();
+        entityManager.clear();
+
+        Event reloaded = eventRepository.findByIdWithAddress(event.getId()).orElseThrow();
+        then(reloaded.getName()).isEqualTo("Fake Event");
+        then(reloaded.getCapacity()).isEqualTo(3);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 204 and then 404 when reading the deleted event")
+    void deleteEvent_whenNoActiveRegistrations_removesTheEvent() throws Exception {
+        Event event = saveEvent();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/admin/events/{eventId}", event.getId()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{id}", event.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 409 and keep the event when it has an active registration")
+    void deleteEvent_whenActiveRegistration_returnsConflictAndKeepsTheEvent() throws Exception {
+        Event event = saveEvent();
+        User user = userRepository.save(validUser());
+        registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/admin/events/{eventId}", event.getId()))
+                .andExpect(status().isConflict());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{id}", event.getId()))
+                .andExpect(status().isOk());
+    }
+
+    private String updateBody(int capacity) {
+        return """
+                {
+                  "name": "Renamed Event",
+                  "category": "CONCERT",
+                  "schedule": "2126-10-01T10:00:00",
+                  "address": {
+                    "street": "456 New St",
+                    "city": "New City",
+                    "postalCode": "99999",
+                    "countryCode": "IT"
+                  },
+                  "capacity": %d
+                }
+                """.formatted(capacity);
     }
 
     private Event saveEvent() {
@@ -315,5 +410,17 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .address(eventAddress)
                 .capacity(capacity)
                 .build());
+    }
+
+    private User userNamed(String name, String email) {
+        User user = validUser();
+        user.setName(name);
+        user.setEmail(email);
+        return user;
+    }
+
+    private RequestPostProcessor asUser(String email) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
     }
 }
