@@ -285,18 +285,6 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.content[1].name").value("Bruno"));
     }
 
-    private User userNamed(String name, String email) {
-        User user = validUser();
-        user.setName(name);
-        user.setEmail(email);
-        return user;
-    }
-
-    private RequestPostProcessor asUser(String email) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
-    }
-
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("PUT /admin/events/{eventId} - should replace the event and edit its address in place")
@@ -386,5 +374,17 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .address(eventAddress)
                 .capacity(capacity)
                 .build());
+    }
+
+    private User userNamed(String name, String email) {
+        User user = validUser();
+        user.setName(name);
+        user.setEmail(email);
+        return user;
+    }
+
+    private RequestPostProcessor asUser(String email) {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
     }
 }
