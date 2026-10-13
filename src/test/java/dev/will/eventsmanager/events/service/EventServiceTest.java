@@ -4,6 +4,7 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventFullException;
+import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
@@ -221,6 +222,47 @@ class EventServiceTest {
                 .hasMessageContaining("Event");
 
         then(eventMapper).should(never()).updateEntity(any(), any());
+    }
+
+    @Test
+    void deleteEvent_whenNoActiveRegistrations_deletesTheEvent() {
+        Long eventId = 10L;
+        Event event = Event.builder().id(eventId).build();
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(0L);
+
+        eventService.deleteEvent(eventId);
+
+        then(eventRepository).should().delete(event);
+    }
+
+    @Test
+    void deleteEvent_whenThereAreActiveRegistrations_throwsAndKeepsTheEvent() {
+        Long eventId = 10L;
+        Event event = Event.builder().id(eventId).build();
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
+
+        assertThatThrownBy(() -> eventService.deleteEvent(eventId))
+                .isInstanceOf(EventHasActiveRegistrationsException.class)
+                .hasMessageContaining("2");
+
+        then(eventRepository).should(never()).delete(any(Event.class));
+    }
+
+    @Test
+    void deleteEvent_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.deleteEvent(eventId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+
+        then(eventRepository).should(never()).delete(any(Event.class));
     }
 
     @Test

@@ -2,6 +2,7 @@ package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
+import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
@@ -66,6 +67,18 @@ public class EventService {
 
         eventMapper.updateEntity(request, event);
         return eventMapper.toResponse(event);
+    }
+
+    public void deleteEvent(Long eventId) {
+        Event event = eventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
+
+        long activeRegistrations = eventRegistrationsRepository.countByEventId(eventId);
+        if (activeRegistrations > 0) {
+            throw new EventHasActiveRegistrationsException(activeRegistrations);
+        }
+
+        eventRepository.delete(event);
     }
 
     public PageResponse<EventAttendeeResponse> findEventAttendees(Long eventId, Pageable pageable) {

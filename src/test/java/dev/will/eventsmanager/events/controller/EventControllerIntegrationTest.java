@@ -337,6 +337,42 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         then(reloaded.getCapacity()).isEqualTo(3);
     }
 
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 204 and then 404 when reading the deleted event")
+    void deleteEvent_whenNoActiveRegistrations_removesTheEvent() throws Exception {
+        Event event = saveEvent();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/admin/events/{eventId}", event.getId()))
+                .andExpect(status().isNoContent());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{id}", event.getId()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 409 and keep the event when it has an active registration")
+    void deleteEvent_whenActiveRegistration_returnsConflictAndKeepsTheEvent() throws Exception {
+        Event event = saveEvent();
+        User user = userRepository.save(validUser());
+        registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(delete("/admin/events/{eventId}", event.getId()))
+                .andExpect(status().isConflict());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{id}", event.getId()))
+                .andExpect(status().isOk());
+    }
+
     private String updateBody(int capacity) {
         return """
                 {

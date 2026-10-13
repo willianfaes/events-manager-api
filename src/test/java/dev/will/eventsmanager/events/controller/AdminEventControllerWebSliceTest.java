@@ -5,6 +5,7 @@ import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
+import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.AttendeeSort;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
@@ -35,6 +36,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -348,6 +351,52 @@ class AdminEventControllerWebSliceTest {
         mockMvc.perform(put("/admin/events/{eventId}", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 204 No Content when ADMIN deletes an event")
+    void deleteEvent_should_returnNoContent_when_adminDeletesEvent() throws Exception {
+        Long eventId = 7L;
+
+        mockMvc.perform(delete("/admin/events/{eventId}", eventId))
+                .andExpect(status().isNoContent());
+
+        then(eventService).should().deleteEvent(eventId);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 404 Not Found when the event does not exist")
+    void deleteEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
+        Long eventId = 99L;
+
+        willThrow(new ResourceNotFoundException("Event", eventId)).given(eventService).deleteEvent(eventId);
+
+        mockMvc.perform(delete("/admin/events/{eventId}", eventId))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 409 Conflict when the event has active registrations")
+    void deleteEvent_should_returnConflict_when_eventHasActiveRegistrations() throws Exception {
+        Long eventId = 7L;
+
+        willThrow(new EventHasActiveRegistrationsException(3)).given(eventService).deleteEvent(eventId);
+
+        mockMvc.perform(delete("/admin/events/{eventId}", eventId))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("DELETE /admin/events/{eventId} - should return 403 Forbidden when user has insufficient role")
+    void deleteEvent_should_returnForbidden_when_roleIsUser() throws Exception {
+        mockMvc.perform(delete("/admin/events/{eventId}", 7L))
                 .andExpect(status().isForbidden());
 
         then(eventService).shouldHaveNoInteractions();

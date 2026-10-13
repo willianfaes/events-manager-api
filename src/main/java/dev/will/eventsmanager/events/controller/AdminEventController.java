@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,6 +66,12 @@ public class AdminEventController {
             @PathVariable Long eventId,
             @Valid @RequestBody EventCreateRequest request) {
         return ResponseEntity.ok(eventService.updateEvent(eventId, request));
+    }
+
+    @DeleteMapping("/{eventId}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable Long eventId) {
+        eventService.deleteEvent(eventId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{eventId}/registrations")
