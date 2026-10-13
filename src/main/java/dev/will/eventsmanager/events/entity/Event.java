@@ -60,6 +60,14 @@ public class Event {
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
 
+    public int remainingSpots(long activeRegistrations) {
+        if (activeRegistrations > capacity) {
+            throw new IllegalStateException("Event " + id + " has " + activeRegistrations
+                    + " active registrations for a capacity of " + capacity);
+        }
+        return capacity - (int) activeRegistrations;
+    }
+
     public void ensureHasRoom(long activeRegistrations) {
         if (activeRegistrations >= capacity) {
             throw new EventFullException();

@@ -17,6 +17,7 @@ import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
+import dev.will.eventsmanager.events.repository.EventRegistrationCount;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
 import dev.will.eventsmanager.users.entity.User;
@@ -42,8 +43,10 @@ import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,7 +76,7 @@ class EventServiceTest {
     @Test
     void shouldReturnAllEvents() {
 
-        Event fakeEvent = new Event();
+        Event fakeEvent = Event.builder().id(1L).capacity(10).build();
         Pageable fakePageable = PageRequest.of(0, 10);
         EventFilter filter = new EventFilter("test", null, null);
         Page<Event> fakePage = new PageImpl<>(
@@ -84,7 +87,9 @@ class EventServiceTest {
         EventResponse fakeResponse = EventResponse.builder().build();
 
         when(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(fakePageable))).thenReturn(fakePage);
-        when(eventMapper.toResponse(fakeEvent)).thenReturn(fakeResponse);
+        when(eventRegistrationsRepository.countByEventIds(List.of(1L)))
+                .thenReturn(List.of(new EventRegistrationCount(1L, 3L)));
+        when(eventMapper.toResponse(fakeEvent, 7)).thenReturn(fakeResponse);
 
         PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
 
@@ -101,6 +106,28 @@ class EventServiceTest {
     }
 
     @Test
+    void findAllEvents_countsTheRegistrationsOfThePageInOneQuery() {
+        Event withRegistrations = Event.builder().id(1L).capacity(10).build();
+        Event withoutRegistrations = Event.builder().id(2L).capacity(5).build();
+        Pageable pageable = PageRequest.of(0, 10);
+        EventResponse first = EventResponse.builder().id(1L).build();
+        EventResponse second = EventResponse.builder().id(2L).build();
+
+        given(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(pageable)))
+                .willReturn(new PageImpl<>(List.of(withRegistrations, withoutRegistrations), pageable, 2L));
+        given(eventRegistrationsRepository.countByEventIds(List.of(1L, 2L)))
+                .willReturn(List.of(new EventRegistrationCount(1L, 3L)));
+        given(eventMapper.toResponse(withRegistrations, 7)).willReturn(first);
+        given(eventMapper.toResponse(withoutRegistrations, 5)).willReturn(second);
+
+        PageResponse<EventResponse> result = eventService.findAllEvents(pageable, new EventFilter(null, null, null));
+
+        assertThat(result.content()).containsExactly(first, second);
+        then(eventRegistrationsRepository).should().countByEventIds(List.of(1L, 2L));
+        then(eventRegistrationsRepository).should(never()).countByEventId(anyLong());
+    }
+
+    @Test
     void shouldReturnEmptyListWhenNoEventsExist() {
 
         Pageable fakePageable = PageRequest.of(0, 10);
@@ -113,6 +140,7 @@ class EventServiceTest {
         PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
 
         assertThat(result.content()).isEmpty();
+        then(eventRegistrationsRepository).shouldHaveNoInteractions();
         assertThat(result.page()).isZero();
         assertThat(result.size()).isEqualTo(10);
         assertThat(result.totalElements()).isZero();
@@ -123,17 +151,18 @@ class EventServiceTest {
     @Test
     void findEventById_whenEventExists_returnsMappedResponse() {
         Long id = 1L;
-        Event event = Event.builder().id(id).build();
+        Event event = Event.builder().id(id).capacity(10).build();
         EventResponse expectedResponse = EventResponse.builder().id(id).build();
 
         when(eventRepository.findByIdWithAddress(id)).thenReturn(Optional.of(event));
-        when(eventMapper.toResponse(event)).thenReturn(expectedResponse);
+        when(eventRegistrationsRepository.countByEventId(id)).thenReturn(3L);
+        when(eventMapper.toResponse(event, 7)).thenReturn(expectedResponse);
 
         EventResponse result = eventService.findEventById(id);
 
         assertThat(result).isEqualTo(expectedResponse);
         verify(eventRepository).findByIdWithAddress(id);
-        verify(eventMapper).toResponse(event);
+        verify(eventMapper).toResponse(event, 7);
     }
 
     @Test
@@ -165,16 +194,17 @@ class EventServiceTest {
                 .build();
 
         Event toPersist = Event.builder().build();
-        Event saved = Event.builder().id(1L).build();
+        Event saved = Event.builder().id(1L).capacity(20).build();
         EventResponse expected = EventResponse.builder().id(1L).build();
 
         when(eventMapper.toEntity(request)).thenReturn(toPersist);
         when(eventRepository.save(toPersist)).thenReturn(saved);
-        when(eventMapper.toResponse(saved)).thenReturn(expected);
+        when(eventMapper.toResponse(saved, 20)).thenReturn(expected);
 
         EventResponse result = eventService.createEvent(request);
 
         assertThat(result).isSameAs(expected);
+        then(eventRegistrationsRepository).shouldHaveNoInteractions();
     }
 
     @Test
@@ -186,7 +216,12 @@ class EventServiceTest {
 
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(3L);
-        given(eventMapper.toResponse(event)).willReturn(expected);
+        // The mapper is a mock, so apply the new capacity the way the real one does.
+        willAnswer(invocation -> {
+            event.setCapacity(request.capacity());
+            return null;
+        }).given(eventMapper).updateEntity(request, event);
+        given(eventMapper.toResponse(event, 0)).willReturn(expected);
 
         EventResponse result = eventService.updateEvent(eventId, request);
 

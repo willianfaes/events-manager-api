@@ -39,7 +39,9 @@ public class EventController {
 
     @GetMapping
     @Operation(summary = "Get all events with pagination")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved events")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved events. "
+            + "remainingSpots is a snapshot and may be stale; registering is the source of truth "
+            + "and answers 409 when the event is full.")
     public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -52,7 +54,9 @@ public class EventController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get event by ID", description = "Returns a single event, including its address")
-    @ApiResponse(responseCode = "200", description = "Event found")
+    @ApiResponse(responseCode = "200", description = "Event found. "
+            + "remainingSpots is a snapshot and may be stale; registering is the source of truth "
+            + "and answers 409 when the event is full.")
     @ApiResponse(responseCode = "404", description = "Event not found",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> getEventById(@PathVariable Long id) {

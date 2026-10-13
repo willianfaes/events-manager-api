@@ -105,6 +105,44 @@ class EventRegistrationsRepositoryJpaTest {
         assertThat(result).containsExactly(shared.getId());
     }
 
+    @Test
+    void countByEventIds_shouldCountTheActiveRegistrationsOfEachRequestedEvent() {
+        User ana = saveUser(EMAIL);
+        User bruno = saveUser("bruno@example.com");
+        Event twoRegistrations = saveEvent("Two");
+        Event oneRegistration = saveEvent("One");
+        Event noRegistrations = saveEvent("None");
+        Event notRequested = saveEvent("Not requested");
+        saveRegistration(ana, twoRegistrations);
+        saveRegistration(bruno, twoRegistrations);
+        saveRegistration(ana, oneRegistration);
+        saveRegistration(ana, notRequested);
+        em.clear();
+
+        List<EventRegistrationCount> result = registrationsRepository.countByEventIds(
+                List.of(twoRegistrations.getId(), oneRegistration.getId(), noRegistrations.getId()));
+
+        assertThat(result).containsExactlyInAnyOrder(
+                new EventRegistrationCount(twoRegistrations.getId(), 2L),
+                new EventRegistrationCount(oneRegistration.getId(), 1L));
+    }
+
+    @Test
+    void countByEventIds_shouldNotCountCancelledRegistrations() {
+        User ana = saveUser(EMAIL);
+        User bruno = saveUser("bruno@example.com");
+        Event event = saveEvent("Partly cancelled");
+        saveRegistration(ana, event);
+        EventRegistration cancelled = saveRegistration(bruno, event);
+        registrationsRepository.delete(cancelled);
+        em.flush();
+        em.clear();
+
+        List<EventRegistrationCount> result = registrationsRepository.countByEventIds(List.of(event.getId()));
+
+        assertThat(result).containsExactly(new EventRegistrationCount(event.getId(), 1L));
+    }
+
     private User saveUser(String email) {
         User user = validUser();
         user.setEmail(email);
