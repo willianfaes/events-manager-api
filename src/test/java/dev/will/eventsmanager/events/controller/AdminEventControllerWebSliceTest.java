@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.auth.service.TokenService;
+import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.AttendeeSort;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
@@ -36,6 +37,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminEventController.class)
@@ -254,6 +256,101 @@ class AdminEventControllerWebSliceTest {
 
         mockMvc.perform(get("/admin/events/{eventId}/registrations", eventId))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 200 with the new values when ADMIN provides a valid request")
+    void updateEvent_should_returnOk_when_validRequestAsAdmin() throws Exception {
+        Long eventId = 7L;
+        EventCreateRequest request = validRequest().capacity(80).build();
+
+        given(eventService.updateEvent(eventId, request))
+                .willReturn(validResponse().id(eventId).capacity(80).build());
+
+        mockMvc.perform(put("/admin/events/{eventId}", eventId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(eventId))
+                .andExpect(jsonPath("$.capacity").value(80));
+
+        then(eventService).should().updateEvent(eventId, request);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 400 Bad Request when the name is blank")
+    void updateEvent_should_returnBadRequest_when_nameIsBlank() throws Exception {
+        EventCreateRequest request = validRequest().name(" ").build();
+
+        mockMvc.perform(put("/admin/events/{eventId}", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("name")));
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 400 Bad Request when the body is not valid JSON")
+    void updateEvent_should_returnBadRequest_when_bodyIsMalformed() throws Exception {
+        String notJson = "this is not json";
+
+        mockMvc.perform(put("/admin/events/{eventId}", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(notJson))
+                .andExpect(status().isBadRequest());
+
+        then(eventService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 404 Not Found when the event does not exist")
+    void updateEvent_should_returnNotFound_when_eventDoesNotExist() throws Exception {
+        Long eventId = 99L;
+        EventCreateRequest request = validRequest().build();
+
+        given(eventService.updateEvent(eventId, request))
+                .willThrow(new ResourceNotFoundException("Event", eventId));
+
+        mockMvc.perform(put("/admin/events/{eventId}", eventId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return 409 Conflict when capacity is below the active registrations")
+    void updateEvent_should_returnConflict_when_capacityIsBelowRegistrations() throws Exception {
+        Long eventId = 7L;
+        EventCreateRequest request = validRequest().capacity(2).build();
+
+        given(eventService.updateEvent(eventId, request))
+                .willThrow(new CapacityBelowRegistrationsException(3));
+
+        mockMvc.perform(put("/admin/events/{eventId}", eventId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("PUT /admin/events/{eventId} - should return 403 Forbidden when user has insufficient role")
+    void updateEvent_should_returnForbidden_when_roleIsUser() throws Exception {
+        EventCreateRequest request = validRequest().build();
+
+        mockMvc.perform(put("/admin/events/{eventId}", 7L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        then(eventService).shouldHaveNoInteractions();
     }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {

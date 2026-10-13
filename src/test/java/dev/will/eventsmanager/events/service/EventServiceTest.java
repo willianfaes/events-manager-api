@@ -2,6 +2,7 @@ package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
+import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventFullException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
@@ -173,6 +174,53 @@ class EventServiceTest {
         EventResponse result = eventService.createEvent(request);
 
         assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void updateEvent_whenCapacityCoversTheActiveRegistrations_updatesTheEvent() {
+        Long eventId = 10L;
+        Event event = Event.builder().id(eventId).capacity(50).build();
+        EventCreateRequest request = EventCreateRequest.builder().name("New name").capacity(3).build();
+        EventResponse expected = EventResponse.builder().id(eventId).build();
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(3L);
+        given(eventMapper.toResponse(event)).willReturn(expected);
+
+        EventResponse result = eventService.updateEvent(eventId, request);
+
+        then(eventMapper).should().updateEntity(request, event);
+        assertThat(result).isSameAs(expected);
+    }
+
+    @Test
+    void updateEvent_whenCapacityIsBelowTheActiveRegistrations_throwsAndKeepsTheEvent() {
+        Long eventId = 10L;
+        Event event = Event.builder().id(eventId).capacity(50).build();
+        EventCreateRequest request = EventCreateRequest.builder().capacity(2).build();
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(3L);
+
+        assertThatThrownBy(() -> eventService.updateEvent(eventId, request))
+                .isInstanceOf(CapacityBelowRegistrationsException.class)
+                .hasMessageContaining("3");
+
+        then(eventMapper).should(never()).updateEntity(any(), any());
+    }
+
+    @Test
+    void updateEvent_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+        EventCreateRequest request = EventCreateRequest.builder().capacity(10).build();
+
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.updateEvent(eventId, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+
+        then(eventMapper).should(never()).updateEntity(any(), any());
     }
 
     @Test
