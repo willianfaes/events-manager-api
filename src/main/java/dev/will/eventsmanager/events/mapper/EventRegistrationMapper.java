@@ -13,6 +13,7 @@ import org.mapstruct.ReportingPolicy;
 )
 public interface EventRegistrationMapper {
 
+    @Mapping(source = "event.id", target = "eventId")
     EventRegistrationResponse toResponse(EventRegistration registration);
 
     @Mapping(source = "id", target = "registrationId")

@@ -65,7 +65,7 @@ public class EventController {
             summary = "Register for an event",
             description = "Registers the authenticated user for the specified event.")
     @ApiResponse(responseCode = "201", description =
-            "The user has been registered; Location header points to the registration. "
+            "The user has been registered; Location header points to GET /events/{eventId}/registrations/me. "
                     + "A previously cancelled registration is revived.")
     @ApiResponse(responseCode = "404", description = "Event not found",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -78,11 +78,26 @@ public class EventController {
     ) {
         EventRegistrationResponse registration = eventService.registerUserForEvent(loggedUser, eventId);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(registration.id())
+                .path("/me")
+                .build()
                 .toUri();
 
         return ResponseEntity.created(location).body(registration);
+    }
+
+    @GetMapping("/{eventId}/registrations/me")
+    @Operation(
+            summary = "Get my registration for an event",
+            description = "Returns the authenticated user's active registration for the specified event.")
+    @ApiResponse(responseCode = "200", description = "The user is registered for the event")
+    @ApiResponse(responseCode = "404",
+            description = "Event not found, or the user has no active registration for it (including a cancelled one)",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<EventRegistrationResponse> getMyRegistration(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal String loggedUser
+    ) {
+        return ResponseEntity.ok(eventService.findUserRegistration(eventId, loggedUser));
     }
 
     @DeleteMapping("/{eventId}/registrations")

@@ -52,7 +52,7 @@ class EventControllerWebSliceTest {
     void registerForEvent_should_returnCreated_when_validRequestAsUser() throws Exception {
         Long eventId = 10L;
         Long registrationId = 1L;
-        EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId);
+        EventRegistrationResponse expectedResponse = new EventRegistrationResponse(registrationId, eventId);
 
         given(eventService.registerUserForEvent(anyString(), eq(eventId))).willReturn(expectedResponse);
 
@@ -60,7 +60,8 @@ class EventControllerWebSliceTest {
                 .with(authenticatedUser()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(registrationId))
-                .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/" + registrationId)));
+                .andExpect(jsonPath("$.eventId").value(eventId))
+                .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/me")));
 
 
         then(eventService).should().registerUserForEvent("user@example.com", eventId);
@@ -141,6 +142,34 @@ class EventControllerWebSliceTest {
                 .given(eventService).unregisterUserFromEvent(eventId, "user@example.com");
 
         mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
+                        .with(authenticatedUser()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /events/{eventId}/registrations/me - should return 200 with the user's registration")
+    void getMyRegistration_should_returnOk_when_userIsRegistered() throws Exception {
+        Long eventId = 10L;
+
+        given(eventService.findUserRegistration(eventId, "user@example.com"))
+                .willReturn(new EventRegistrationResponse(1L, eventId));
+
+        mockMvc.perform(get("/events/{eventId}/registrations/me", eventId)
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.eventId").value(eventId));
+    }
+
+    @Test
+    @DisplayName("GET /events/{eventId}/registrations/me - should return 404 Not Found when the user has no active registration")
+    void getMyRegistration_should_returnNotFound_when_noActiveRegistration() throws Exception {
+        Long eventId = 10L;
+
+        given(eventService.findUserRegistration(eventId, "user@example.com"))
+                .willThrow(new ResourceNotFoundException("Registration", eventId));
+
+        mockMvc.perform(get("/events/{eventId}/registrations/me", eventId)
                         .with(authenticatedUser()))
                 .andExpect(status().isNotFound());
     }
