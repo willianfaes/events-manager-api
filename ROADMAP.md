@@ -79,7 +79,7 @@ In ER-diagram terms:
 | Auth | `POST` | `/auth/register` | Create a new user account. |
 | Event | `GET` | `/events` | List events. |
 | Event | `GET` | `/events/{id}` | Fetch a single event by ID. |
-| Event | `POST` | `/events` | Create a new event. |
+| Event | `POST` | `/admin/events` | Create a new event (admin only). |
 (note: restricted to ADMIN, enforced via @PreAuthorize)
 | Registration | `GET` | `/users/me/registrations?upcoming={bool}` | List the authenticated user's event registrations, paginated — upcoming or past. |
 | Registration | `POST` | `/events/{eventId}/registrations` | Register the authenticated user for an event. |
