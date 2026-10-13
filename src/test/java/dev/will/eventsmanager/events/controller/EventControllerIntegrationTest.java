@@ -26,6 +26,7 @@ import java.util.List;
 
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.endsWith;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -129,23 +130,23 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(registrationId))
                 .andExpect(jsonPath("$.eventId").value(event.getId()))
-                .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
+                .andExpect(header().string("Location", endsWith("/events/" + event.getId() + "/registrations/me")));
     }
 
     @Test
-    @DisplayName("GET /events/{eventId}/registrations/me - should return the registration, then 404 after cancelling")
+    @DisplayName("POST /events/{eventId}/registrations - should return a Location that returns the registration, then 404 after cancelling")
     void getMyRegistration_whenRegisteredThenCancelled_returnsItThenNotFound() throws Exception {
         userRepository.save(validUser());
         Event event = saveEvent();
         entityManager.flush();
         entityManager.clear();
 
-        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+        String location = mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
                         .with(authenticatedUser()))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
 
-        mockMvc.perform(get("/events/{eventId}/registrations/me", event.getId())
-                        .with(authenticatedUser()))
+        mockMvc.perform(get(requireNonNull(location)).with(authenticatedUser()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.eventId").value(event.getId()));
 
@@ -155,8 +156,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        mockMvc.perform(get("/events/{eventId}/registrations/me", event.getId())
-                        .with(authenticatedUser()))
+        mockMvc.perform(get(location).with(authenticatedUser()))
                 .andExpect(status().isNotFound());
     }
 
@@ -225,7 +225,8 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
                         .with(authenticatedUser()))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/registrations/" + registrationId)));
+                .andExpect(jsonPath("$.id").value(registrationId))
+                .andExpect(header().string("Location", endsWith("/events/" + event.getId() + "/registrations/me")));
     }
 
     @Test

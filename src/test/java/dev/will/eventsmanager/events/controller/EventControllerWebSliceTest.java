@@ -61,7 +61,7 @@ class EventControllerWebSliceTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(registrationId))
                 .andExpect(jsonPath("$.eventId").value(eventId))
-                .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/" + registrationId)));
+                .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/me")));
 
 
         then(eventService).should().registerUserForEvent("user@example.com", eventId);

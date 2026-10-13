@@ -78,8 +78,8 @@ public class EventController {
     ) {
         EventRegistrationResponse registration = eventService.registerUserForEvent(loggedUser, eventId);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(registration.id())
+                .path("/me")
+                .build()
                 .toUri();
 
         return ResponseEntity.created(location).body(registration);
