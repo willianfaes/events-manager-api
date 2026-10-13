@@ -2,12 +2,15 @@ package dev.will.eventsmanager.users.controller;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.docs.Authenticated;
+import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -49,6 +52,15 @@ public class UserController {
     }
 
     @GetMapping("/me/registrations/events")
+    @Operation(
+            summary = "Check which of the given events the user is registered for",
+            description = "Returns, from the given event ids, the ones the authenticated user has an active "
+                    + "registration for. Meant for list screens that show register or cancel. "
+                    + "Ids that match no event or a cancelled registration are simply left out.")
+    @ApiResponse(responseCode = "200", description = "The ids the user is registered for (possibly empty)")
+    @ApiResponse(responseCode = "400",
+            description = "eventIds is missing, empty, has a non-numeric value or has more than 50 ids",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<RegisteredEventsResponse> getRegisteredEventIds(
             @AuthenticationPrincipal String loggedUser,
             @RequestParam @NotEmpty @Size(max = PageRequests.MAX_SIZE) Set<Long> eventIds
