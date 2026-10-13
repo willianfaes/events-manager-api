@@ -1,15 +1,11 @@
 package dev.will.eventsmanager.events.controller;
 
 import dev.will.eventsmanager.common.PageResponse;
-import dev.will.eventsmanager.common.docs.AdminOnly;
 import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
-import dev.will.eventsmanager.common.pagination.AttendeeSort;
 import dev.will.eventsmanager.common.pagination.EventSort;
 import dev.will.eventsmanager.common.pagination.PageRequests;
-import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
-import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
 import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.service.EventService;
@@ -18,12 +14,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -66,23 +60,6 @@ public class EventController {
         return ResponseEntity.ok(event);
     }
 
-    @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @AdminOnly
-    @Operation(summary = "Create an event", description = "Creates a new event. Requires ADMIN role.")
-    @ApiResponse(responseCode = "201", description = "Event created; Location header points to the new resource")
-    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. missing category, non-positive capacity, schedule in the past)",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest request) {
-        EventResponse created = eventService.createEvent(request);
-        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
-                .path("/{id}")
-                .buildAndExpand(created.id())
-                .toUri();
-
-        return ResponseEntity.created(location).body(created);
-    }
-
     @PostMapping("/{eventId}/registrations")
     @Operation(
             summary = "Register for an event",
@@ -120,23 +97,5 @@ public class EventController {
     public ResponseEntity<Void> unregisterFromEvent(@PathVariable Long eventId, Principal principal) {
         eventService.unregisterUserFromEvent(eventId, principal.getName());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-    }
-
-    @GetMapping("/{eventId}/registrations")
-    @PreAuthorize("hasRole('ADMIN')")
-    @AdminOnly
-    @Operation(
-            summary = "List the attendees of an event",
-            description = "Returns the active registrations of the event, paginated. Requires ADMIN role.")
-    @ApiResponse(responseCode = "200", description = "Page of the event's attendees")
-    @ApiResponse(responseCode = "404", description = "Event not found",
-            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
-    public ResponseEntity<PageResponse<EventAttendeeResponse>> getEventAttendees(
-            @PathVariable Long eventId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "NEWEST") AttendeeSort sort) {
-        Pageable pageable = PageRequests.of(page, size, sort.toSort());
-        return ResponseEntity.ok(eventService.findEventAttendees(eventId, pageable));
     }
 }
