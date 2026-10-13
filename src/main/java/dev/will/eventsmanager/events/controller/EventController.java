@@ -65,7 +65,7 @@ public class EventController {
             summary = "Register for an event",
             description = "Registers the authenticated user for the specified event.")
     @ApiResponse(responseCode = "201", description =
-            "The user has been registered; Location header points to the registration. "
+            "The user has been registered; Location header points to GET /events/{eventId}/registrations/me. "
                     + "A previously cancelled registration is revived.")
     @ApiResponse(responseCode = "404", description = "Event not found",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
