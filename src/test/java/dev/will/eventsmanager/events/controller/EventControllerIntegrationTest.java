@@ -373,6 +373,68 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    @WithMockUser
+    @DisplayName("GET /events/{id} - should show the capacity minus the active registrations, ignoring cancelled ones")
+    void getEventById_whenRegistrationsExist_returnsRemainingSpots() throws Exception {
+        Event event = saveEvent("Spots by id", 10);
+        saveRegistrations(event, 3);
+        User cancelledUser = userRepository.save(userNamed("Cancelled", "cancelled@example.com"));
+        EventRegistration cancelled = registrationsRepository.save(
+                EventRegistration.builder().user(cancelledUser).event(event).build());
+        registrationsRepository.delete(cancelled); // soft delete (@SQLDelete)
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events/{id}", event.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capacity").value(10))
+                .andExpect(jsonPath("$.remainingSpots").value(7));
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("GET /events - should show the remaining spots of each event, including one without registrations")
+    void getAllEvents_whenSomeEventsHaveRegistrations_returnsRemainingSpotsOfEach() throws Exception {
+        Event withRegistrations = saveEvent("Spots-listing A", 10);
+        saveEvent("Spots-listing B", 5);
+        saveRegistrations(withRegistrations, 3);
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events").param("name", "spots-listing"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Spots-listing A"))
+                .andExpect(jsonPath("$.content[0].remainingSpots").value(7))
+                .andExpect(jsonPath("$.content[1].name").value("Spots-listing B"))
+                .andExpect(jsonPath("$.content[1].remainingSpots").value(5));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("PUT /admin/events/{eventId} - should return the remaining spots for the new capacity")
+    void updateEvent_whenValidRequest_returnsRemainingSpotsForTheNewCapacity() throws Exception {
+        Event event = saveEvent("Spots after update", 100);
+        saveRegistrations(event, 2);
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(put("/admin/events/{eventId}", event.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateBody(5)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capacity").value(5))
+                .andExpect(jsonPath("$.remainingSpots").value(3));
+    }
+
+    private void saveRegistrations(Event event, int count) {
+        for (int i = 1; i <= count; i++) {
+            User user = userRepository.save(userNamed("User " + i, "user" + i + "@example.com"));
+            registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
+        }
+    }
+
     private String updateBody(int capacity) {
         return """
                 {
@@ -395,6 +457,10 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Event saveEvent(int capacity) {
+        return saveEvent("Fake Event", capacity);
+    }
+
+    private Event saveEvent(String name, int capacity) {
         EventAddress eventAddress = EventAddress.builder()
                 .street("123 Main St")
                 .city("Sample City")
@@ -404,7 +470,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .build();
 
         return eventRepository.save(Event.builder()
-                .name("Fake Event")
+                .name(name)
                 .category(Category.CONCERT)
                 .schedule(DEFAULT_FUTURE_SCHEDULE)
                 .address(eventAddress)

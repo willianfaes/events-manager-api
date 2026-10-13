@@ -20,5 +20,6 @@ public interface EventMapper {
     @Mapping(target = "deleted", ignore = true)
     void updateEntity(EventCreateRequest request, @MappingTarget Event event);
 
-    EventResponse toResponse(Event event);
+    @Mapping(target = "remainingSpots", source = "remainingSpots")
+    EventResponse toResponse(Event event, int remainingSpots);
 }

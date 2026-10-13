@@ -13,6 +13,7 @@ import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
+import dev.will.eventsmanager.events.repository.EventRegistrationCount;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
 import dev.will.eventsmanager.events.repository.EventSpecs;
@@ -25,7 +26,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -41,19 +45,32 @@ public class EventService {
     public PageResponse<EventResponse> findAllEvents(Pageable pageable, EventFilter filter) {
         Specification<Event> specification = EventSpecs.from(filter);
         Page<Event> events = eventRepository.findAll(specification, pageable);
-        return PageResponse.from(events.map(eventMapper::toResponse));
+        Map<Long, Long> activeRegistrations = countActiveRegistrations(events.getContent());
+        return PageResponse.from(events.map(event -> eventMapper.toResponse(
+                event, event.remainingSpots(activeRegistrations.getOrDefault(event.getId(), 0L)))));
+    }
+
+    // One aggregated query for the whole page. Events without active registrations are absent from the map.
+    private Map<Long, Long> countActiveRegistrations(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+        return eventRegistrationsRepository.countByEventIds(eventIds).stream()
+                .collect(Collectors.toMap(EventRegistrationCount::eventId, EventRegistrationCount::total));
     }
 
     public EventResponse findEventById(Long id) throws ResourceNotFoundException {
         Event event = eventRepository.findByIdWithAddress(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", id));
-        return eventMapper.toResponse(event);
+        long activeRegistrations = eventRegistrationsRepository.countByEventId(id);
+        return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 
     public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
         Event entity = eventMapper.toEntity(eventCreateRequest);
         Event saved = eventRepository.save(entity);
-        return eventMapper.toResponse(saved);
+        return eventMapper.toResponse(saved, saved.remainingSpots(0));
     }
 
     public EventResponse updateEvent(Long eventId, EventCreateRequest request) {
@@ -66,7 +83,7 @@ public class EventService {
         }
 
         eventMapper.updateEntity(request, event);
-        return eventMapper.toResponse(event);
+        return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 
     public void deleteEvent(Long eventId) {

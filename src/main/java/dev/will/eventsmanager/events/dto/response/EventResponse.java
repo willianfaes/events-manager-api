@@ -14,6 +14,7 @@ public record EventResponse(
         LocalDateTime schedule,
         EventAddressResponse address,
         String description,
-        int capacity
+        int capacity,
+        int remainingSpots
 ) {
 }
