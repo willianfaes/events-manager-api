@@ -62,6 +62,17 @@ public class AdminEventController {
     }
 
     @PutMapping("/{eventId}")
+    @AdminOnly
+    @Operation(
+            summary = "Update an event",
+            description = "Replaces the whole event, with the same rules as creation. Requires ADMIN role.")
+    @ApiResponse(responseCode = "200", description = "Event updated; the body shows the new values")
+    @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. blank name, schedule in the past, missing address) or unreadable body",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Event not found",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "Capacity is lower than the number of active registrations",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable Long eventId,
             @Valid @RequestBody EventCreateRequest request) {
@@ -69,6 +80,16 @@ public class AdminEventController {
     }
 
     @DeleteMapping("/{eventId}")
+    @AdminOnly
+    @Operation(
+            summary = "Delete an event",
+            description = "Removes an event that has no active registrations, meant for events created by mistake. "
+                    + "Requires ADMIN role.")
+    @ApiResponse(responseCode = "204", description = "Event deleted")
+    @ApiResponse(responseCode = "404", description = "Event not found or already deleted",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "The event has active registrations",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<Void> deleteEvent(@PathVariable Long eventId) {
         eventService.deleteEvent(eventId);
         return ResponseEntity.noContent().build();
