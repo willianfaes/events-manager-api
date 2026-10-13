@@ -18,6 +18,11 @@ public interface EventRegistrationsRepository extends JpaRepository<EventRegistr
 
     long countByEventId(Long eventId);
 
+    // Events without active registrations are absent from the result. @SQLRestriction already excludes cancelled ones.
+    @Query("SELECT new dev.will.eventsmanager.events.repository.EventRegistrationCount(r.event.id, COUNT(r)) "
+            + "FROM EventRegistration r WHERE r.event.id IN :eventIds GROUP BY r.event.id")
+    List<EventRegistrationCount> countByEventIds(@Param("eventIds") Collection<Long> eventIds);
+
     // Native query bypasses @SQLRestriction to find soft-deleted registrations.
     @Query(value = "SELECT * FROM event_registrations WHERE user_id = :userId AND event_id = :eventId",
             nativeQuery = true)
