@@ -48,8 +48,22 @@ services:
       retries: 5
       start_period: 40s
 
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      events-manager:
+        condition: service_healthy
+    profiles:
+      - monitoring
+
 volumes:
   postgres_data:
+  prometheus_data:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
