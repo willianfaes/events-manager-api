@@ -122,6 +122,51 @@
         { "refId": "C", "expr": "hikaricp_connections_max", "legendFormat": "max" }
       ],
       "fieldConfig": { "defaults": { "unit": "short", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "k6 (client): p95 / p99 latency by route",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "k6_http_req_duration_p95{scenario=\"browse\"}", "legendFormat": "p95 {{name}}" },
+        { "refId": "B", "expr": "k6_http_req_duration_p99{scenario=\"browse\"}", "legendFormat": "p99 {{name}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "k6 (client): requests per second",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(k6_http_reqs_total{scenario=\"browse\"}[1m]))", "legendFormat": "requests" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "k6 (client): failed requests",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "max(k6_http_req_failed_rate{scenario=\"browse\"})", "legendFormat": "failed" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "k6 (client): virtual users",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "k6_vus", "legendFormat": "VUs" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0 }, "overrides": [] }
     }
   ]
 }

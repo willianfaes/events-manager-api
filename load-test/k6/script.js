@@ -51,7 +51,7 @@ function bearer(token) {
 }
 
 export function setup() {
-  const setupTags = { phase: 'setup' };
+  const setupTag = (name) => ({ phase: 'setup', name: `setup: ${name}` });
   const tokens = [];
 
   for (let n = 1; n <= USERS; n++) {
@@ -62,10 +62,10 @@ export function setup() {
       age: 30,
       password: PASSWORD,
       address: { street: 'Via del Corso 1', city: 'Rome', stateOrProvince: 'Lazio', postalCode: '00186', countryCode: 'IT' },
-    }), { headers: JSON_HEADERS, tags: setupTags });
+    }), { headers: JSON_HEADERS, tags: setupTag('register') });
 
     const login = http.post(`${BASE}/auth/login`, JSON.stringify({ email: email(n), password: PASSWORD }),
-      { headers: JSON_HEADERS, tags: setupTags });
+      { headers: JSON_HEADERS, tags: setupTag('login') });
     const token = login.json('token');
     if (!token) {
       fail(`login failed for ${email(n)} (status ${login.status})`);
@@ -74,7 +74,7 @@ export function setup() {
   }
 
   const found = http.get(`${BASE}/events?name=load-test-race&size=1`,
-    { headers: bearer(tokens[0]), tags: setupTags });
+    { headers: bearer(tokens[0]), tags: setupTag('find race event') });
   const content = found.json('content');
   if (!content || content.length === 0) {
     fail('event load-test-race not found: run load-test/seed.sql first');
@@ -83,12 +83,12 @@ export function setup() {
 
   // Makes the race repeatable: drops the registrations left by a previous run (404 means there was none).
   for (const token of tokens) {
-    http.del(`${BASE}/events/${eventId}/registrations`, null, { headers: bearer(token), tags: setupTags });
+    http.del(`${BASE}/events/${eventId}/registrations`, null, { headers: bearer(token), tags: setupTag('clear registrations') });
   }
 
   const eventIds = [];
   for (let page = 0; page < 20; page++) {
-    const res = http.get(`${BASE}/events?page=${page}&size=50`, { headers: bearer(tokens[0]), tags: setupTags });
+    const res = http.get(`${BASE}/events?page=${page}&size=50`, { headers: bearer(tokens[0]), tags: setupTag('list events') });
     if (res.status !== 200) break;
     for (const event of res.json('content')) {
       eventIds.push(event.id);
