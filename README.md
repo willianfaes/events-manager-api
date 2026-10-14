@@ -93,7 +93,7 @@ Results are available at [http://localhost:9000/dashboard?id=events-manager-api]
 ```
 This builds the app image (Maven build → `eclipse-temurin:25-jre-alpine` runtime) and starts both the `db` and `events-manager` containers. The app waits for the database to report healthy before starting.
 
-3. The API will be available at `http://localhost:8080`.
+3. The API will be available at `http://localhost:8080`. Check that the app is ready with `docker compose ps`: `events-manager` shows `healthy` once `/actuator/health` answers. The health and metrics endpoints run on the management port (8081), which is not published to the host.
 
 ### Useful commands
 
