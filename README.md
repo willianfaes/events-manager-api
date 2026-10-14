@@ -124,6 +124,41 @@ The **Events Manager** dashboard is provisioned from `observability/grafana/dash
 
 - Prometheus scrapes the `events-manager` **container** (port 8081, internal to the compose network). An app started from the IDE does not show up in Grafana.
 - The Grafana password is only applied when its volume is created; to change it later, remove the `grafana_data` volume.
+- After editing the dashboard JSON, restart the `grafana` container so it reloads the file.
+
+### Load test (k6)
+
+A [k6](https://k6.io) script in `load-test/k6/script.js` exercises two things:
+
+- **Registration race:** 200 distinct users try to register for the same event, which has 50 spots, at the same time. The thresholds require exactly 50 `201` and 150 `409`, so the run fails if a spot is oversold.
+- **Browsing:** `GET /events` (random page) and `GET /events/{id}` at a constant 50 iterations per second for 2 minutes. The thresholds are an error rate under 1% and a p95 under 500 ms.
+
+The Docker database starts empty, so create the test events once (1,000 events plus the 50-spot one):
+
+```bash
+docker compose --profile monitoring up -d --build
+docker compose exec -T db psql -U <DB_USER> -d <DB_NAME> < load-test/seed.sql
+docker compose run --rm k6
+```
+
+On PowerShell, use `Get-Content load-test/seed.sql | docker compose exec -T db psql -U <DB_USER> -d <DB_NAME>` for the second line. The k6 metrics are pushed to Prometheus, so the **k6 (client)** panels of the Grafana dashboard show the client side next to the server side.
+
+#### Baseline, before any cache
+
+Fresh volumes, seed, one warm-up run (discarded) and three measured runs, on the final image (Java 21):
+
+| Browsing, 100 requests/s for 2 min | Median of 3 runs | Range |
+|---|---|---|
+| p50 | 5.2 ms | 5.17 – 5.21 ms |
+| p95 | 6.6 ms | 6.62 – 6.65 ms |
+| p99 | 10.0 ms | 9.93 – 10.53 ms |
+| Error rate | 0% (0 of 12,002) | — |
+
+The race gave 50 created and 150 rejected in every run, and the database held exactly 50 active registrations.
+
+**Environment:** Intel Core i5-7400 (4 cores), 16 GB RAM, Windows 10, Docker Desktop with 4 CPUs and 7.7 GB. The app, the database, Prometheus, Grafana and k6 all run on this one machine, so the load generator competes with the app.
+
+**What this is not:** a synthetic test on a small dataset (1,000 events) with the generator on the same host. The numbers are for comparing a change against this baseline (the cache, in #72), not a statement about how many users the API serves.
 
 ### Local development without Docker for the app
 
