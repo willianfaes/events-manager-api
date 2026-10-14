@@ -85,7 +85,7 @@ Results are available at [http://localhost:9000/dashboard?id=events-manager-api]
    cp .env.example .env
    cp src/main/resources/application-local.properties.example src/main/resources/application-local.properties
 ```
-> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error.
+> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs `JWT_SECRET` (at least 32 bytes, the app refuses to start without it) and, for the monitoring profile, `GRAFANA_PASSWORD`.
 
 2. Build and start the stack:
 ```bash
@@ -104,6 +104,26 @@ This builds the app image (Maven build → `eclipse-temurin:25-jre-alpine` runti
 | `docker compose down` | Stop and remove containers |
 | `docker compose logs -f events-manager` | Follow the app's logs |
 | `docker compose up -d db` | Start only the database (useful for local development in an IDE) |
+| `docker compose --profile monitoring up -d --build` | Start the stack with Prometheus and Grafana |
+
+### Monitoring (Prometheus and Grafana)
+
+The `monitoring` profile adds Prometheus and Grafana next to the app:
+
+```bash
+docker compose --profile monitoring up -d --build
+```
+
+| Service | URL | Notes |
+|---|---|---|
+| API and Swagger | `http://localhost:8080/swagger-ui.html` | send requests here |
+| Grafana | `http://localhost:3000` | user `admin`, password from `GRAFANA_PASSWORD` in `.env` |
+| Prometheus | `http://localhost:9090` | targets, queries and the alert state |
+
+The **Events Manager** dashboard is provisioned from `observability/grafana/dashboards/` and shows request rate and 5xx ratio, p50 and p95 latency per route, JVM heap, GC pause time and the Hikari pool. The `HighP95Latency` rule (p95 above 500 ms for 2 minutes) is in `observability/prometheus/alerts.yml`; it only changes state, nothing is notified.
+
+- Prometheus scrapes the `events-manager` **container** (port 8081, internal to the compose network). An app started from the IDE does not show up in Grafana.
+- The Grafana password is only applied when its volume is created; to change it later, remove the `grafana_data` volume.
 
 ### Local development without Docker for the app
 
