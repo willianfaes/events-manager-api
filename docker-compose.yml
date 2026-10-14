@@ -50,6 +50,11 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.15.0
+    # Overriding command replaces the image defaults, so the first two flags repeat them.
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-remote-write-receiver
     ports:
       - "9090:9090"
     volumes:
@@ -78,6 +83,20 @@ services:
       - prometheus
     profiles:
       - monitoring
+
+  k6:
+    image: grafana/k6:2.3.0
+    command: run --out experimental-prometheus-rw /scripts/script.js
+    environment:
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      K6_PROMETHEUS_RW_TREND_STATS: avg,med,p(95),p(99)
+    volumes:
+      - ./load-test/k6:/scripts:ro
+    depends_on:
+      events-manager:
+        condition: service_healthy
+    profiles:
+      - loadtest
 
 volumes:
   postgres_data:
