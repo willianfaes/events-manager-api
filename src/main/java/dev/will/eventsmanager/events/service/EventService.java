@@ -21,6 +21,7 @@ import dev.will.eventsmanager.events.repository.EventSpecs;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -71,12 +72,15 @@ public class EventService {
         return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 
+    // allEntries: a listing key cannot be derived from one event, so any change drops every cached page.
+    @CacheEvict(cacheNames = CacheConfig.EVENTS_LISTING, allEntries = true)
     public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
         Event entity = eventMapper.toEntity(eventCreateRequest);
         Event saved = eventRepository.save(entity);
         return eventMapper.toResponse(saved, saved.remainingSpots(0));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.EVENTS_LISTING, allEntries = true)
     public EventResponse updateEvent(Long eventId, EventCreateRequest request) {
         Event event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
@@ -90,6 +94,7 @@ public class EventService {
         return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.EVENTS_LISTING, allEntries = true)
     public void deleteEvent(Long eventId) {
         Event event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));

@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.controller;
 
+import com.jayway.jsonpath.JsonPath;
 import dev.will.eventsmanager.AbstractIntegrationTest;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
@@ -15,6 +16,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,8 +38,10 @@ import static org.assertj.core.api.BDDAssertions.then;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Not @Transactional on purpose: the cache manager is transaction aware, so inside a test that rolls back
@@ -138,6 +142,51 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
         then(listing(user, get("/events").param("name", token))).contains("\"remainingSpots\":5");
     }
 
+    @Test
+    @DisplayName("POST /admin/events - should show the new event in the next listing")
+    void createEvent_whenListingIsCached_nextListingShowsTheNewEvent() throws Exception {
+        String token = uniqueToken();
+        saveEvent(token, 10);
+        listing(asEmail("user@example.com"), get("/events").param("name", token));
+
+        String created = mockMvc.perform(post("/admin/events").with(asAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(eventBody(token + "-created")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        eventIds.add(((Number) JsonPath.read(created, "$.id")).longValue());
+
+        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).contains("-created");
+    }
+
+    @Test
+    @DisplayName("PUT /admin/events/{eventId} - should show the updated event in the next listing")
+    void updateEvent_whenListingIsCached_nextListingShowsTheChange() throws Exception {
+        String token = uniqueToken();
+        Event event = saveEvent(token, 10);
+        listing(asEmail("user@example.com"), get("/events").param("name", token));
+
+        mockMvc.perform(put("/admin/events/{eventId}", event.getId()).with(asAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(eventBody(token + "-renamed")))
+                .andExpect(status().isOk());
+
+        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).contains("-renamed");
+    }
+
+    @Test
+    @DisplayName("DELETE /admin/events/{eventId} - should drop the deleted event from the next listing")
+    void deleteEvent_whenListingIsCached_nextListingDropsTheEvent() throws Exception {
+        String token = uniqueToken();
+        Event event = saveEvent(token, 10);
+        listing(asEmail("user@example.com"), get("/events").param("name", token));
+
+        mockMvc.perform(delete("/admin/events/{eventId}", event.getId()).with(asAdmin()))
+                .andExpect(status().isNoContent());
+
+        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).doesNotContain(token);
+    }
+
     private String listing(RequestPostProcessor principal, MockHttpServletRequestBuilder request) throws Exception {
         return mockMvc.perform(request.with(principal))
                 .andExpect(status().isOk())
@@ -177,6 +226,28 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     private RequestPostProcessor asEmail(String email) {
         return authentication(new UsernamePasswordAuthenticationToken(
                 email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+    }
+
+    private RequestPostProcessor asAdmin() {
+        return authentication(new UsernamePasswordAuthenticationToken(
+                "admin@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+    }
+
+    private String eventBody(String name) {
+        return """
+                {
+                  "name": "%s",
+                  "category": "CONCERT",
+                  "schedule": "2126-10-01T10:00:00",
+                  "address": {
+                    "street": "123 Main St",
+                    "city": "Sample City",
+                    "postalCode": "12345",
+                    "countryCode": "US"
+                  },
+                  "capacity": 10
+                }
+                """.formatted(name);
     }
 
     private static Specification<Event> anySpecification() {
