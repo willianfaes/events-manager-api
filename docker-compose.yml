@@ -50,6 +50,8 @@ services:
         condition: service_healthy
     environment:
       SPRING_DATA_REDIS_HOST: redis
+      # CACHE_TYPE=none turns the listing cache off (same build) to measure without it, e.g. in the k6 comparison.
+      SPRING_CACHE_TYPE: ${CACHE_TYPE:-redis}
       # Inject the variables safely into Spring Boot
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}

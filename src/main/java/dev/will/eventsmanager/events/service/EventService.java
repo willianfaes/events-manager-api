@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.config.CacheConfig;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
@@ -20,6 +21,7 @@ import dev.will.eventsmanager.events.repository.EventSpecs;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -42,6 +44,8 @@ public class EventService {
     private final EventRegistrationsRepository eventRegistrationsRepository;
     private final UserRepository userRepository;
 
+    // The key relies on EventFilter always carrying a real `from`; without it a listing cached today would be served tomorrow.
+    @Cacheable(cacheNames = CacheConfig.EVENTS_LISTING, key = "#pageable.toString() + '|' + #filter.toString()")
     public PageResponse<EventResponse> findAllEvents(Pageable pageable, EventFilter filter) {
         Specification<Event> specification = EventSpecs.from(filter);
         Page<Event> events = eventRepository.findAll(specification, pageable);
