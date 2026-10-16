@@ -14,4 +14,8 @@ public record EventFilter(
 
         @Schema(description = "Eventos até esta data", example = "2026-12-31")
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
-) {}
+) {
+    public EventFilter {
+        from = from != null ? from : LocalDate.now();
+    }
+}

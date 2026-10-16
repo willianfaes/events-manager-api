@@ -5,17 +5,14 @@ import dev.will.eventsmanager.events.entity.Event;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 public final class EventSpecs {
 
     private EventSpecs() {}
 
     public static Specification<Event> from(EventFilter filter) {
-        LocalDate from = filter.from() != null ? filter.from() : LocalDate.now(ZoneId.systemDefault());
-
         return Specification.allOf(
-                scheduledFrom(from),
+                scheduledFrom(filter.from()),
                 nameContains(filter.name()),
                 scheduledUntil(filter.to()));
     }
