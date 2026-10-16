@@ -51,6 +51,8 @@ services:
     environment:
       SPRING_DATA_REDIS_HOST: redis
       # CACHE_TYPE=none turns the listing cache off (same build) to measure without it, e.g. in the k6 comparison.
+      # Set it in .env or export it for every compose command: `docker compose run k6` recreates this service
+      # with the current environment and would silently turn the cache back on.
       SPRING_CACHE_TYPE: ${CACHE_TYPE:-redis}
       # Inject the variables safely into Spring Boot
       SPRING_PROFILES_ACTIVE: docker
