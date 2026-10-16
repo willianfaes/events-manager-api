@@ -4,8 +4,12 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
+import org.springframework.cache.Cache;
+import org.springframework.cache.annotation.CachingConfigurer;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -14,14 +18,47 @@ import org.springframework.data.redis.serializer.RedisSerializationContext.Seria
 
 import java.time.Duration;
 
+@Slf4j
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class CacheConfig implements CachingConfigurer {
 
     public static final String EVENTS_LISTING = "events-listing";
 
     // The listing carries remainingSpots, which is only a snapshot: the TTL is the staleness bound.
     static final Duration EVENTS_LISTING_TTL = Duration.ofSeconds(30);
+
+    // The cache is an optimization: when Redis fails, skip it and let the call go to PostgreSQL.
+    // One WARN line, no stack trace (same convention as GlobalExceptionHandler); the key is left out because it holds the filter.
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new CacheErrorHandler() {
+            @Override
+            public void handleCacheGetError(RuntimeException exception, Cache cache, Object key) {
+                warn("get", cache, exception);
+            }
+
+            @Override
+            public void handleCachePutError(RuntimeException exception, Cache cache, Object key, Object value) {
+                warn("put", cache, exception);
+            }
+
+            @Override
+            public void handleCacheEvictError(RuntimeException exception, Cache cache, Object key) {
+                warn("evict", cache, exception);
+            }
+
+            @Override
+            public void handleCacheClearError(RuntimeException exception, Cache cache) {
+                warn("clear", cache, exception);
+            }
+
+            private void warn(String operation, Cache cache, RuntimeException exception) {
+                log.warn("Cache '{}' {} failed, falling back to the database: {}",
+                        cache.getName(), operation, exception.getClass().getSimpleName());
+            }
+        };
+    }
 
     @Bean
     RedisCacheManagerBuilderCustomizer eventsListingCache(ObjectMapper objectMapper) {
