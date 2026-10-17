@@ -40,7 +40,8 @@ public class EventController {
     @GetMapping
     @Operation(summary = "Get all events with pagination")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved events. "
-            + "remainingSpots is a snapshot and may be stale; registering is the source of truth "
+            + "The listing is cached for 30 seconds and cleared when an event is created, updated or deleted. "
+            + "remainingSpots is a snapshot and may be up to 30 seconds stale; registering is the source of truth "
             + "and answers 409 when the event is full.")
     public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
