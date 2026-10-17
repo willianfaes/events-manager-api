@@ -17,9 +17,10 @@ import static java.util.Objects.requireNonNull;
 public abstract class AbstractIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
-    protected static final GenericContainer<?> redis = new GenericContainer<>("redis:7.4-alpine").withExposedPorts(6379);
+    static final GenericContainer<?> redis = new GenericContainer<>("redis:7.4-alpine");
 
     static {
+        redis.addExposedPort(6379);
         postgres.start();
         redis.start();
     }
