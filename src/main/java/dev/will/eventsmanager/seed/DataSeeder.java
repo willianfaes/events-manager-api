@@ -18,7 +18,7 @@ import java.time.ZoneId;
 @RequiredArgsConstructor
 @Transactional
 @Profile("local")
-class DevDataSeeder implements CommandLineRunner {
+class DataSeeder implements CommandLineRunner {
 
     private final EventRepository eventRepository;
     private final Faker faker = new Faker();
