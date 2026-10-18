@@ -40,7 +40,7 @@ services:
       redis:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: docker
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATA_REDIS_HOST: redis
       SPRING_CACHE_TYPE: redis
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
