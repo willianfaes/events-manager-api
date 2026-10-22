@@ -31,8 +31,8 @@ resource "aws_iam_role_policy" "read_params" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+      Effect = "Allow"
+      Action = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
       # GetParametersByPath is authorized on the path itself, not only on its children.
       Resource = [
         "arn:aws:ssm:${var.region}:${data.aws_caller_identity.current.account_id}:parameter/${var.name}/prod",
