@@ -1,0 +1,10 @@
+.terraform/
+
+# State can hold secrets and resource details: never commit it
+*.tfstate
+*.tfstate.*
+
+*.tfvars
+*.tfvars.json
+*.tfplan
+crash.log
