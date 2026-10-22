@@ -47,3 +47,61 @@ jobs:
           -Dsonar.host.url=https://sonarcloud.io
           -Dsonar.organization=willianfaes
           -Dsonar.projectKey=willianfaes_events-manager-api
+
+  # Publishes the image and runs it on the host. Skipped unless DEPLOY_ENABLED is "true", so a stack that is
+  # torn down between sessions does not turn every merge red (gh variable set DEPLOY_ENABLED --body true).
+  deploy:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      id-token: write # lets the job ask GitHub for the OIDC token the AWS role trusts
+      contents: read
+    env:
+      AWS_REGION: eu-north-1
+      IMAGE_REPOSITORY: events-manager-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assume the deploy role
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      # The Dockerfile pulls base images from Docker Hub, which rate limits anonymous pulls.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Tags are immutable, so re-running the same commit must not push again.
+      - name: Publish the image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          TAG="${GITHUB_SHA::7}"
+          echo "IMAGE_TAG=${TAG}" >> "$GITHUB_ENV"
+          if aws ecr describe-images --repository-name "$IMAGE_REPOSITORY" --image-ids imageTag="$TAG" > /dev/null 2>&1; then
+            echo "Image ${TAG} is already published, skipping the push"
+          else
+            docker build --platform linux/amd64 -t "${REGISTRY}/${IMAGE_REPOSITORY}:${TAG}" .
+            docker push "${REGISTRY}/${IMAGE_REPOSITORY}:${TAG}"
+          fi
+
+      - name: Send the compose file and the deploy script to the host
+        run: |
+          deploy/ssm-run.sh "echo $(base64 -w0 docker-compose.prod.yml) | base64 -d > /opt/events-manager/docker-compose.prod.yml"
+          deploy/ssm-run.sh "echo $(base64 -w0 deploy/deploy.sh) | base64 -d > /opt/events-manager/deploy.sh && chmod +x /opt/events-manager/deploy.sh"
+
+      - name: Deploy
+        run: deploy/ssm-run.sh "/opt/events-manager/deploy.sh ${IMAGE_TAG}"

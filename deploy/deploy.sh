@@ -29,6 +29,6 @@ mv "$TMP_ENV" "${APP_DIR}/.env"
 
 echo "==> Starting the stack"
 cd "$APP_DIR"
-docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml pull --quiet
 docker compose -f docker-compose.prod.yml up -d --wait --wait-timeout 180 --remove-orphans
 docker compose -f docker-compose.prod.yml ps
