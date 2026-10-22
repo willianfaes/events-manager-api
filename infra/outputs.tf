@@ -12,3 +12,8 @@ output "alb_dns_name" {
   description = "Public address of the load balancer (HTTP only until there is a domain)"
   value       = aws_lb.main.dns_name
 }
+
+output "github_deploy_role_arn" {
+  description = "Role the deploy workflow assumes through OIDC"
+  value       = aws_iam_role.github_deploy.arn
+}
