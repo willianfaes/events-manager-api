@@ -1,0 +1,10 @@
+# Keep local-only files out of the Docker build context so they never end up in the image.
+# The Dockerfile only needs pom.xml and src/.
+.git
+.github
+.idea
+target
+htmlReport
+.env
+.env.*
+**/application-local.properties
