@@ -1,0 +1,9 @@
+output "ecr_repository_url" {
+  description = "Image repository: tag and push the API image here"
+  value       = aws_ecr_repository.api.repository_url
+}
+
+output "instance_id" {
+  description = "EC2 instance id: aws ssm start-session --target <id>"
+  value       = aws_instance.app.id
+}
