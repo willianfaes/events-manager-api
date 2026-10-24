@@ -38,7 +38,10 @@ public class User implements UserDetails {
 
     private Integer age;
 
-    @Column(nullable = false)
+    // The `sub` of the identity provider's token; null until the profile is linked.
+    @Column(name = "external_id", unique = true)
+    private String externalId;
+
     private String password;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
