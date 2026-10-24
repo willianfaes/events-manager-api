@@ -14,3 +14,24 @@ once: it cannot live in the state it stores.
 
 New buckets are already encrypted (SSE-S3) and block public access, so nothing else is needed. Versioning keeps
 every previous state. Then `terraform init` (or `terraform init -migrate-state` from a local state).
+
+## Cognito
+
+`cognito.tf` creates the user pool, the hosted login page, the Swagger app client and the `USER` and `ADMIN`
+groups. Users are created by an admin (no public sign-up).
+
+- Demo user: `demo@example.com` / `Demo1234!` (group `USER`). The password is public on purpose.
+- Demo admin: `admin-demo@example.com`, only created when `demo_admin_password` is set in `terraform.tfvars`.
+- The client only accepts the callback `http://localhost:8080/swagger-ui/oauth2-redirect.html`: Cognito requires
+  HTTPS for any other host, so login from the deployed Swagger waits for a domain.
+
+Get a token without a browser:
+
+    aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id <cognito_client_id> \
+      --auth-parameters USERNAME=demo@example.com,PASSWORD='Demo1234!'
+
+## Teardown
+
+The pool is kept between sessions: a new pool changes the issuer and the `sub` of every user, which orphans the
+profiles in the database. A plain `terraform destroy` fails on purpose (`prevent_destroy`). Use
+`infra/teardown.sh`, which destroys everything except Cognito.
