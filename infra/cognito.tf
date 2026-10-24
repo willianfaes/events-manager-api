@@ -64,3 +64,46 @@ resource "aws_cognito_user_group" "admin" {
   user_pool_id = aws_cognito_user_pool.main.id
   description  = "Can manage events"
 }
+
+# Demo users so a visitor can log in without signing up. The password is permanent, so there is no forced change
+# at first login, and SUPPRESS keeps the pool from sending an invitation e-mail.
+resource "aws_cognito_user" "demo" {
+  user_pool_id   = aws_cognito_user_pool.main.id
+  username       = "demo@example.com"
+  password       = var.demo_user_password
+  message_action = "SUPPRESS"
+
+  attributes = {
+    email          = "demo@example.com"
+    email_verified = "true"
+  }
+}
+
+resource "aws_cognito_user_in_group" "demo" {
+  user_pool_id = aws_cognito_user_pool.main.id
+  group_name   = aws_cognito_user_group.user.name
+  username     = aws_cognito_user.demo.username
+}
+
+# The admin can edit and delete events, so its password is not in the repo: without it the user is not created.
+resource "aws_cognito_user" "demo_admin" {
+  count = var.demo_admin_password == null ? 0 : 1
+
+  user_pool_id   = aws_cognito_user_pool.main.id
+  username       = "admin-demo@example.com"
+  password       = var.demo_admin_password
+  message_action = "SUPPRESS"
+
+  attributes = {
+    email          = "admin-demo@example.com"
+    email_verified = "true"
+  }
+}
+
+resource "aws_cognito_user_in_group" "demo_admin" {
+  count = var.demo_admin_password == null ? 0 : 1
+
+  user_pool_id = aws_cognito_user_pool.main.id
+  group_name   = aws_cognito_user_group.admin.name
+  username     = aws_cognito_user.demo_admin[0].username
+}
