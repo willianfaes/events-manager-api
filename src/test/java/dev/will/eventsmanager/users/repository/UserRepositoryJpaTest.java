@@ -60,19 +60,4 @@ class UserRepositoryJpaTest {
 
         thenThrownBy(() -> userRepository.saveAndFlush(second)).isInstanceOf(DataIntegrityViolationException.class);
     }
-
-    @Test
-    @DisplayName("keeps users that have no external id and no password yet")
-    void shouldAllowUsersWithoutExternalIdOrPassword() {
-        User first = TestFixtures.validUser();
-        first.setPassword(null);
-        User second = TestFixtures.validUser();
-        second.setEmail("other@example.com");
-        second.setPassword(null);
-
-        userRepository.saveAndFlush(first);
-        userRepository.saveAndFlush(second);
-
-        then(userRepository.findByEmail(TestFixtures.USER_EMAIL)).get().extracting(User::getExternalId).isNull();
-    }
 }

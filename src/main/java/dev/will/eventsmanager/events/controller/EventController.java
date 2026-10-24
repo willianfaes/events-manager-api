@@ -18,7 +18,6 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -79,9 +78,9 @@ public class EventController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventRegistrationResponse> registerForEvent(
             @PathVariable Long eventId,
-            @AuthenticationPrincipal String loggedUser
+            Principal principal
     ) {
-        EventRegistrationResponse registration = eventService.registerUserForEvent(loggedUser, eventId);
+        EventRegistrationResponse registration = eventService.registerUserForEvent(principal.getName(), eventId);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/me")
                 .build()
@@ -100,9 +99,9 @@ public class EventController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventRegistrationResponse> getMyRegistration(
             @PathVariable Long eventId,
-            @AuthenticationPrincipal String loggedUser
+            Principal principal
     ) {
-        return ResponseEntity.ok(eventService.findUserRegistration(eventId, loggedUser));
+        return ResponseEntity.ok(eventService.findUserRegistration(eventId, principal.getName()));
     }
 
     @DeleteMapping("/{eventId}/registrations")

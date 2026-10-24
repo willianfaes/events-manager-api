@@ -14,8 +14,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,14 +21,14 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedAs;
+import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.endsWith;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -318,6 +316,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         User first = userRepository.save(validUser());
         User second = validUser();
         second.setEmail("second@example.com");
+        second.setExternalId(subOf("second@example.com"));
         second = userRepository.save(second);
         registrationsRepository.save(EventRegistration.builder().user(first).event(event).build());
         registrationsRepository.save(EventRegistration.builder().user(second).event(event).build());
@@ -482,11 +481,11 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         User user = validUser();
         user.setName(name);
         user.setEmail(email);
+        user.setExternalId(subOf(email));
         return user;
     }
 
     private RequestPostProcessor asUser(String email) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        return authenticatedAs(subOf(email));
     }
 }

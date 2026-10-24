@@ -14,8 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.RepeatedTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -30,9 +28,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedAs;
+import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -139,6 +138,7 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
         for (int i = 0; i < amount; i++) {
             User user = validUser();
             user.setEmail(EMAIL_PREFIX + UUID.randomUUID() + "@example.com");
+            user.setExternalId(subOf(user.getEmail()));
             users.add(userRepository.save(user));
         }
         return users;
@@ -177,7 +177,6 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
     }
 
     private RequestPostProcessor asUser(User user) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                user.getEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        return authenticatedAs(user.getExternalId());
     }
 }

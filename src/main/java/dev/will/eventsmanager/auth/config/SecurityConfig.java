@@ -1,6 +1,6 @@
 package dev.will.eventsmanager.auth.config;
 
-import dev.will.eventsmanager.auth.security.SecurityFilter;
+import dev.will.eventsmanager.auth.security.CognitoJwtAuthenticationConverter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
@@ -15,19 +15,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration // This tells Spring "hey, this class has a configuration Bean!".
                     // And if it is a Bean... Spring manages it for us!
 @EnableWebSecurity // This activates web security, lets us Devs create OUR OWN access rules!
 @EnableMethodSecurity
 public class SecurityConfig {
-
-    private final SecurityFilter securityFilter;
-
-    public SecurityConfig(SecurityFilter securityFilter) {
-        this.securityFilter = securityFilter;
-    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, RestAuthenticationEntryPoint restAuthenticationEntryPoint) throws Exception {
@@ -48,7 +41,9 @@ public class SecurityConfig {
                         .requestMatchers(EndpointRequest.to("health", "prometheus")).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
-                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(new CognitoJwtAuthenticationConverter()))
+                        .authenticationEntryPoint(restAuthenticationEntryPoint))
                 .build();
     }
 

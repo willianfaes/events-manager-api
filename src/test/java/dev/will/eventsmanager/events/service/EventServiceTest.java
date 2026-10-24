@@ -38,7 +38,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static dev.will.eventsmanager.TestFixtures.USER_EMAIL;
+import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -308,11 +308,11 @@ class EventServiceTest {
         Event event = Event.builder().id(eventId).build();
         EventRegistration registration = EventRegistration.builder().user(user).event(event).build();
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.of(registration));
 
-        eventService.unregisterUserFromEvent(eventId, USER_EMAIL);
+        eventService.unregisterUserFromEvent(eventId, USER_SUB);
 
         then(eventRegistrationsRepository).should().delete(registration);
     }
@@ -323,10 +323,10 @@ class EventServiceTest {
         User user = validUser();
         user.setId(1L);
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findById(eventId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_EMAIL))
+        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_SUB))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event");
 
@@ -340,11 +340,11 @@ class EventServiceTest {
         user.setId(1L);
         Event event = Event.builder().id(eventId).build();
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_EMAIL))
+        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_SUB))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Registration");
 
@@ -360,12 +360,12 @@ class EventServiceTest {
         EventRegistration registration = EventRegistration.builder().id(7L).user(user).event(event).build();
         EventRegistrationResponse expected = new EventRegistrationResponse(7L, eventId);
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.existsById(eventId)).willReturn(true);
         given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.of(registration));
         given(eventRegistrationMapper.toResponse(registration)).willReturn(expected);
 
-        EventRegistrationResponse result = eventService.findUserRegistration(eventId, USER_EMAIL);
+        EventRegistrationResponse result = eventService.findUserRegistration(eventId, USER_SUB);
 
         assertThat(result).isSameAs(expected);
     }
@@ -376,10 +376,10 @@ class EventServiceTest {
         User user = validUser();
         user.setId(1L);
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.existsById(eventId)).willReturn(false);
 
-        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_EMAIL))
+        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_SUB))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event");
     }
@@ -390,11 +390,11 @@ class EventServiceTest {
         User user = validUser();
         user.setId(1L);
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.existsById(eventId)).willReturn(true);
         given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_EMAIL))
+        assertThatThrownBy(() -> eventService.findUserRegistration(eventId, USER_SUB))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Registration");
     }
@@ -439,13 +439,13 @@ class EventServiceTest {
         user.setId(1L);
         Event event = Event.builder().id(eventId).capacity(2).build();
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.empty());
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
 
-        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_SUB, eventId))
                 .isInstanceOf(EventFullException.class)
                 .hasMessageContaining("full");
 
@@ -460,12 +460,12 @@ class EventServiceTest {
         Event event = Event.builder().id(eventId).capacity(2).build();
         EventRegistration active = EventRegistration.builder().user(user).event(event).build();
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.of(active));
 
-        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_SUB, eventId))
                 .isInstanceOf(AlreadyRegisteredException.class)
                 .hasMessageContaining("already registered");
 
@@ -481,7 +481,7 @@ class EventServiceTest {
         EventRegistration saved = EventRegistration.builder().id(7L).user(user).event(event).build();
         EventRegistrationResponse expected = new EventRegistrationResponse(7L, eventId);
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(2L, eventId))
                 .willReturn(Optional.empty());
@@ -489,7 +489,7 @@ class EventServiceTest {
         given(eventRegistrationsRepository.save(any(EventRegistration.class))).willReturn(saved);
         given(eventRegistrationMapper.toResponse(saved)).willReturn(expected);
 
-        EventRegistrationResponse result = eventService.registerUserForEvent(USER_EMAIL, eventId);
+        EventRegistrationResponse result = eventService.registerUserForEvent(USER_SUB, eventId);
 
         assertThat(result).isSameAs(expected);
     }
@@ -503,13 +503,13 @@ class EventServiceTest {
         EventRegistration cancelled = EventRegistration.builder()
                 .user(user).event(event).deleted(true).build();
 
-        given(userRepository.findByEmail(USER_EMAIL)).willReturn(Optional.of(user));
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
                 .willReturn(Optional.of(cancelled));
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(2L);
 
-        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_EMAIL, eventId))
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_SUB, eventId))
                 .isInstanceOf(EventFullException.class);
 
         assertThat(cancelled.isDeleted()).isTrue();

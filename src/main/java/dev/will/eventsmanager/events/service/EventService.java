@@ -115,10 +115,10 @@ public class EventService {
         return PageResponse.from(registrations.map(eventRegistrationMapper::toAttendee));
     }
 
-    public EventRegistrationResponse registerUserForEvent(String userEmail, Long eventId) {
+    public EventRegistrationResponse registerUserForEvent(String externalId, Long eventId) {
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+        User user = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", externalId));
 
         Event event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
@@ -148,9 +148,9 @@ public class EventService {
         event.ensureHasRoom(eventRegistrationsRepository.countByEventId(event.getId()));
     }
 
-    public EventRegistrationResponse findUserRegistration(Long eventId, String userEmail) {
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+    public EventRegistrationResponse findUserRegistration(Long eventId, String externalId) {
+        User user = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", externalId));
 
         if (!eventRepository.existsById(eventId)) {
             throw new ResourceNotFoundException("Event", eventId);
@@ -163,9 +163,9 @@ public class EventService {
         return eventRegistrationMapper.toResponse(registration);
     }
 
-    public void unregisterUserFromEvent(Long eventId, String userEmail) {
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
+    public void unregisterUserFromEvent(Long eventId, String externalId) {
+        User user = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", externalId));
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));

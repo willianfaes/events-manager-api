@@ -2,7 +2,6 @@ package dev.will.eventsmanager.events.controller;
 
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
-import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.EventSort;
@@ -16,11 +15,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
+import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.emptyPage;
 import static org.hamcrest.Matchers.endsWith;
@@ -45,7 +46,7 @@ class EventControllerWebSliceTest {
     private EventService eventService;
 
     @MockitoBean
-    private TokenService tokenService;
+    private JwtDecoder jwtDecoder;
 
     @Test
     @DisplayName("POST /events/{eventId}/registrations - should return 201 Created and registration id when authenticated user registers for existing event")
@@ -64,7 +65,7 @@ class EventControllerWebSliceTest {
                 .andExpect(header().string("Location", endsWith("/events/" + eventId + "/registrations/me")));
 
 
-        then(eventService).should().registerUserForEvent("user@example.com", eventId);
+        then(eventService).should().registerUserForEvent(USER_SUB, eventId);
     }
 
     @Test
@@ -79,7 +80,7 @@ class EventControllerWebSliceTest {
                 .with(authenticatedUser()))
                 .andExpect(status().isConflict());
 
-        then(eventService).should().registerUserForEvent("user@example.com", eventId);
+        then(eventService).should().registerUserForEvent(USER_SUB, eventId);
     }
 
     @Test
@@ -94,7 +95,7 @@ class EventControllerWebSliceTest {
                 .with(authenticatedUser()))
                 .andExpect(status().isNotFound());
 
-        then(eventService).should().registerUserForEvent("user@example.com", eventId);
+        then(eventService).should().registerUserForEvent(USER_SUB, eventId);
     }
 
     @Test
@@ -117,7 +118,7 @@ class EventControllerWebSliceTest {
                         .with(authenticatedUser()))
                 .andExpect(status().isNoContent());
 
-        then(eventService).should().unregisterUserFromEvent(eventId, "user@example.com");
+        then(eventService).should().unregisterUserFromEvent(eventId, USER_SUB);
     }
 
     @Test
@@ -126,7 +127,7 @@ class EventControllerWebSliceTest {
         Long eventId = 99L;
 
         willThrow(new ResourceNotFoundException("Event", eventId))
-                .given(eventService).unregisterUserFromEvent(eventId, "user@example.com");
+                .given(eventService).unregisterUserFromEvent(eventId, USER_SUB);
 
         mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
                         .with(authenticatedUser()))
@@ -139,7 +140,7 @@ class EventControllerWebSliceTest {
         Long eventId = 10L;
 
         willThrow(new ResourceNotFoundException("Registration", eventId))
-                .given(eventService).unregisterUserFromEvent(eventId, "user@example.com");
+                .given(eventService).unregisterUserFromEvent(eventId, USER_SUB);
 
         mockMvc.perform(delete("/events/{eventId}/registrations", eventId)
                         .with(authenticatedUser()))
@@ -151,7 +152,7 @@ class EventControllerWebSliceTest {
     void getMyRegistration_should_returnOk_when_userIsRegistered() throws Exception {
         Long eventId = 10L;
 
-        given(eventService.findUserRegistration(eventId, "user@example.com"))
+        given(eventService.findUserRegistration(eventId, USER_SUB))
                 .willReturn(new EventRegistrationResponse(1L, eventId));
 
         mockMvc.perform(get("/events/{eventId}/registrations/me", eventId)
@@ -166,7 +167,7 @@ class EventControllerWebSliceTest {
     void getMyRegistration_should_returnNotFound_when_noActiveRegistration() throws Exception {
         Long eventId = 10L;
 
-        given(eventService.findUserRegistration(eventId, "user@example.com"))
+        given(eventService.findUserRegistration(eventId, USER_SUB))
                 .willThrow(new ResourceNotFoundException("Registration", eventId));
 
         mockMvc.perform(get("/events/{eventId}/registrations/me", eventId)
