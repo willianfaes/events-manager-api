@@ -21,3 +21,16 @@ variable "ecr_force_delete" {
   type        = bool
   default     = false
 }
+
+variable "demo_user_password" {
+  description = "Password of the demo user; public on purpose (it is in the README), so it has a default"
+  type        = string
+  default     = "Demo1234!"
+}
+
+variable "demo_admin_password" {
+  description = "Password of the demo admin; set it in terraform.tfvars (git-ignored). Without it the admin is not created"
+  type        = string
+  default     = null
+  sensitive   = true
+}

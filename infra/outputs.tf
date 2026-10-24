@@ -17,3 +17,18 @@ output "github_deploy_role_arn" {
   description = "Role the deploy workflow assumes through OIDC"
   value       = aws_iam_role.github_deploy.arn
 }
+
+output "cognito_issuer_uri" {
+  description = "Value of the API's issuer-uri: it validates the tokens against this pool"
+  value       = "https://${aws_cognito_user_pool.main.endpoint}"
+}
+
+output "cognito_client_id" {
+  description = "Id of the Swagger app client (not a secret)"
+  value       = aws_cognito_user_pool_client.swagger.id
+}
+
+output "cognito_hosted_ui_url" {
+  description = "Base address of the hosted login page"
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.region}.amazoncognito.com"
+}
