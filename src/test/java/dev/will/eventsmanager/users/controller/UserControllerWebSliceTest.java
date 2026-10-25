@@ -35,10 +35,12 @@ import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.emptyPage;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -195,7 +197,7 @@ class UserControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("POST /users/me - should return 201 with the profile created for the token's sub")
+    @DisplayName("POST /users/me - should return 201 with the profile and a Location pointing to GET /users/me")
     void createProfile_should_return_created_profile() throws Exception {
         given(userService.createProfile(USER_SUB, PROFILE_REQUEST)).willReturn(new ProfileResponse("Demo User", 30,
                 new UserAddressResponse(1L, "Via del Corso 1", null, "Rome", null, "00186", "IT")));
@@ -203,6 +205,7 @@ class UserControllerWebSliceTest {
         mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
                         .with(authenticatedUser()))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", endsWith("/users/me")))
                 .andExpect(jsonPath("$.name").value("Demo User"))
                 .andExpect(jsonPath("$.address.city").value("Rome"));
     }

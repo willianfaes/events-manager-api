@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +25,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.security.Principal;
 import java.util.Set;
 
@@ -47,7 +48,7 @@ public class UserController {
             summary = "Create my profile",
             description = "Creates the profile of the authenticated user, linked to the token's subject. "
                     + "The account itself (e-mail, password) lives in Cognito.")
-    @ApiResponse(responseCode = "201", description = "The profile has been created")
+    @ApiResponse(responseCode = "201", description = "The profile has been created; Location header points to GET /users/me")
     @ApiResponse(responseCode = "400", description = "Invalid body",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @ApiResponse(responseCode = "409", description = "The user already has a profile",
@@ -56,7 +57,9 @@ public class UserController {
             Principal principal,
             @RequestBody @Valid CreateProfileRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createProfile(principal.getName(), request));
+        ProfileResponse profile = userService.createProfile(principal.getName(), request);
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
+        return ResponseEntity.created(location).body(profile);
     }
 
     @GetMapping("/me")
