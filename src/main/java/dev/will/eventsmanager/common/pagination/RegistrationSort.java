@@ -18,6 +18,6 @@ public enum RegistrationSort {
     }
 
     public Sort toSort() {
-        return Sort.by(direction, property);
+        return Sort.by(direction, property).and(Sort.by("id"));
     }
 }
