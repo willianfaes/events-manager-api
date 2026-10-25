@@ -405,7 +405,7 @@ class EventServiceTest {
         Pageable pageable = PageRequest.of(0, 20);
         EventRegistration registration = EventRegistration.builder().id(5L).build();
         EventAttendeeResponse attendee =
-                new EventAttendeeResponse(5L, 1L, "Ana", "ana@example.com", LocalDateTime.now());
+                new EventAttendeeResponse(5L, 1L, "Ana", LocalDateTime.now());
 
         given(eventRepository.existsById(eventId)).willReturn(true);
         given(eventRegistrationsRepository.findByEventIdWithUser(eventId, pageable))

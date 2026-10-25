@@ -8,7 +8,6 @@ import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
-import dev.will.eventsmanager.users.entity.Role;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.mapper.MyRegistrationMapper;
 import dev.will.eventsmanager.users.mapper.ProfileMapper;
@@ -37,8 +36,6 @@ public class UserService {
         }
         User profile = profileMapper.toEntity(request);
         profile.setExternalId(externalId);
-        // Access comes from the token's groups; the column still needs a value.
-        profile.setRole(Role.USER);
         return profileMapper.toResponse(userRepository.save(profile));
     }
 

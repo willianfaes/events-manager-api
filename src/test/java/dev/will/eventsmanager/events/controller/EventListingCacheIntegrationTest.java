@@ -49,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
 
     private static final String CACHE_NAME = "events-listing";
-    private static final String EMAIL_PREFIX = "listing-cache-";
+    private static final String USER_PREFIX = "listing-cache-";
     private static final LocalDateTime FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);
 
     @Autowired
@@ -79,8 +79,8 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
             jdbcTemplate.update("DELETE FROM event_addresses WHERE id = ?", addressId);
         }
         List<Long> userAddressIds = jdbcTemplate.queryForList(
-                "SELECT address_id FROM users WHERE email LIKE ?", Long.class, EMAIL_PREFIX + "%");
-        jdbcTemplate.update("DELETE FROM users WHERE email LIKE ?", EMAIL_PREFIX + "%");
+                "SELECT address_id FROM users WHERE external_id LIKE ?", Long.class, USER_PREFIX + "%");
+        jdbcTemplate.update("DELETE FROM users WHERE external_id LIKE ?", USER_PREFIX + "%");
         userAddressIds.forEach(id -> jdbcTemplate.update("DELETE FROM user_addresses WHERE id = ?", id));
     }
 
@@ -90,8 +90,8 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
         String token = uniqueToken();
         saveEvent(token, 10);
 
-        String forFirstUser = listing(asEmail("first@example.com"), get("/events").param("name", token));
-        String forSecondUser = listing(asEmail("second@example.com"), get("/events").param("name", token));
+        String forFirstUser = listing(asUser("first"), get("/events").param("name", token));
+        String forSecondUser = listing(asUser("second"), get("/events").param("name", token));
 
         verify(eventRepository, times(1)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
         then(forSecondUser).isEqualTo(forFirstUser);
@@ -104,11 +104,11 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     void getAllEvents_whenAParameterChanges_queriesTheDatabaseAgain(String param, String value) throws Exception {
         String token = uniqueToken();
         saveEvent(token, 10);
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
         verify(eventRepository, times(1)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
 
-        listing(asEmail("user@example.com"), get("/events").param("name", token).param(param, value));
+        listing(asUser("user"), get("/events").param("name", token).param(param, value));
 
         verify(eventRepository, times(2)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
     }
@@ -119,7 +119,7 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
         String token = uniqueToken();
         saveEvent(token, 10);
 
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
 
         Set<String> keys = redisTemplate.keys(CACHE_NAME + "::*");
         then(keys).isNotEmpty();
@@ -133,7 +133,7 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     void getAllEvents_whenSomeoneRegisters_keepsRemainingSpotsUntilTheCacheExpires() throws Exception {
         String token = uniqueToken();
         Event event = saveEvent(token, 5);
-        RequestPostProcessor user = asEmail(saveUser().getEmail());
+        RequestPostProcessor user = authenticatedAs(saveUser().getExternalId());
         listing(user, get("/events").param("name", token));
 
         mockMvc.perform(post("/events/{eventId}/registrations", event.getId()).with(user))
@@ -147,7 +147,7 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     void createEvent_whenListingIsCached_nextListingShowsTheNewEvent() throws Exception {
         String token = uniqueToken();
         saveEvent(token, 10);
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
 
         String created = mockMvc.perform(post("/admin/events").with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +156,7 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         eventIds.add(((Number) JsonPath.read(created, "$.id")).longValue());
 
-        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).contains("-created");
+        then(listing(asUser("user"), get("/events").param("name", token))).contains("-created");
     }
 
     @Test
@@ -164,14 +164,14 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     void updateEvent_whenListingIsCached_nextListingShowsTheChange() throws Exception {
         String token = uniqueToken();
         Event event = saveEvent(token, 10);
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
 
         mockMvc.perform(put("/admin/events/{eventId}", event.getId()).with(asAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(eventBody(token + "-renamed")))
                 .andExpect(status().isOk());
 
-        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).contains("-renamed");
+        then(listing(asUser("user"), get("/events").param("name", token))).contains("-renamed");
     }
 
     @Test
@@ -179,12 +179,12 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     void deleteEvent_whenListingIsCached_nextListingDropsTheEvent() throws Exception {
         String token = uniqueToken();
         Event event = saveEvent(token, 10);
-        listing(asEmail("user@example.com"), get("/events").param("name", token));
+        listing(asUser("user"), get("/events").param("name", token));
 
         mockMvc.perform(delete("/admin/events/{eventId}", event.getId()).with(asAdmin()))
                 .andExpect(status().isNoContent());
 
-        then(listing(asEmail("user@example.com"), get("/events").param("name", token))).doesNotContain(token);
+        then(listing(asUser("user"), get("/events").param("name", token))).doesNotContain(token);
     }
 
     private String listing(RequestPostProcessor principal, MockHttpServletRequestBuilder request) throws Exception {
@@ -219,13 +219,12 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
 
     private User saveUser() {
         User user = validUser();
-        user.setEmail(EMAIL_PREFIX + UUID.randomUUID() + "@example.com");
-        user.setExternalId(subOf(user.getEmail()));
+        user.setExternalId(USER_PREFIX + UUID.randomUUID());
         return userRepository.save(user);
     }
 
-    private RequestPostProcessor asEmail(String email) {
-        return authenticatedAs(subOf(email));
+    private RequestPostProcessor asUser(String label) {
+        return authenticatedAs(subOf(label));
     }
 
     private RequestPostProcessor asAdmin() {

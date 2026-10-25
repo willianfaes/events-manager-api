@@ -38,7 +38,7 @@ class EventRegistrationsRepositoryJpaTest {
         registry.add("spring.datasource.password", postgres::getPassword);
     }
 
-    private static final String EMAIL = "ana@example.com";
+    private static final String ANA = "ana";
 
     @Autowired
     EventRegistrationsRepository registrationsRepository;
@@ -48,7 +48,7 @@ class EventRegistrationsRepositoryJpaTest {
 
     @Test
     void findRegisteredEventIds_shouldReturnOnlyTheIdsTheUserIsRegisteredFor() {
-        User ana = saveUser(EMAIL);
+        User ana = saveUser(ANA);
         Event first = saveEvent("First");
         Event second = saveEvent("Second");
         Event third = saveEvent("Third");
@@ -57,42 +57,42 @@ class EventRegistrationsRepositoryJpaTest {
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                subOf(EMAIL), List.of(first.getId(), second.getId(), third.getId()));
+                subOf(ANA), List.of(first.getId(), second.getId(), third.getId()));
 
         assertThat(result).containsExactly(first.getId(), third.getId());
     }
 
     @Test
     void findRegisteredEventIds_shouldIgnoreCancelledRegistrations() {
-        User ana = saveUser(EMAIL);
+        User ana = saveUser(ANA);
         Event event = saveEvent("Cancelled");
         EventRegistration registration = saveRegistration(ana, event);
         registrationsRepository.delete(registration);
         em.flush();
         em.clear();
 
-        List<Long> result = registrationsRepository.findRegisteredEventIds(subOf(EMAIL), List.of(event.getId()));
+        List<Long> result = registrationsRepository.findRegisteredEventIds(subOf(ANA), List.of(event.getId()));
 
         assertThat(result).isEmpty();
     }
 
     @Test
     void findRegisteredEventIds_shouldIgnoreIdsThatMatchNoEvent() {
-        User ana = saveUser(EMAIL);
+        User ana = saveUser(ANA);
         Event event = saveEvent("Known");
         saveRegistration(ana, event);
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                subOf(EMAIL), List.of(event.getId(), 999_999L));
+                subOf(ANA), List.of(event.getId(), 999_999L));
 
         assertThat(result).containsExactly(event.getId());
     }
 
     @Test
     void findRegisteredEventIds_shouldNotReturnRegistrationsOfOtherUsers() {
-        User ana = saveUser(EMAIL);
-        User bruno = saveUser("bruno@example.com");
+        User ana = saveUser(ANA);
+        User bruno = saveUser("bruno");
         Event shared = saveEvent("Shared");
         Event onlyBruno = saveEvent("Only Bruno");
         saveRegistration(ana, shared);
@@ -101,15 +101,15 @@ class EventRegistrationsRepositoryJpaTest {
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                subOf(EMAIL), List.of(shared.getId(), onlyBruno.getId()));
+                subOf(ANA), List.of(shared.getId(), onlyBruno.getId()));
 
         assertThat(result).containsExactly(shared.getId());
     }
 
     @Test
     void countByEventIds_shouldCountTheActiveRegistrationsOfEachRequestedEvent() {
-        User ana = saveUser(EMAIL);
-        User bruno = saveUser("bruno@example.com");
+        User ana = saveUser(ANA);
+        User bruno = saveUser("bruno");
         Event twoRegistrations = saveEvent("Two");
         Event oneRegistration = saveEvent("One");
         Event noRegistrations = saveEvent("None");
@@ -130,8 +130,8 @@ class EventRegistrationsRepositoryJpaTest {
 
     @Test
     void countByEventIds_shouldNotCountCancelledRegistrations() {
-        User ana = saveUser(EMAIL);
-        User bruno = saveUser("bruno@example.com");
+        User ana = saveUser(ANA);
+        User bruno = saveUser("bruno");
         Event event = saveEvent("Partly cancelled");
         saveRegistration(ana, event);
         EventRegistration cancelled = saveRegistration(bruno, event);
@@ -144,10 +144,9 @@ class EventRegistrationsRepositoryJpaTest {
         assertThat(result).containsExactly(new EventRegistrationCount(event.getId(), 1L));
     }
 
-    private User saveUser(String email) {
+    private User saveUser(String label) {
         User user = validUser();
-        user.setEmail(email);
-        user.setExternalId(subOf(email));
+        user.setExternalId(subOf(label));
         return em.persistAndFlush(user);
     }
 

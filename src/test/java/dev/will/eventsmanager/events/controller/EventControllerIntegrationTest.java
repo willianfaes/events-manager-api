@@ -233,7 +233,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("DELETE then POST /events/{eventId}/registrations - should give the freed spot to another user and keep the event full")
     void unregisterFromEvent_thenAnotherUserRegisters_takesTheFreedSpot() throws Exception {
         User holder = userRepository.save(validUser());
-        userRepository.save(userNamed("Bruno", "bruno@example.com"));
+        userRepository.save(userNamed("Bruno"));
         Event event = saveEvent(1);
         registrationsRepository.save(EventRegistration.builder().user(holder).event(event).build());
         entityManager.flush();
@@ -246,7 +246,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         entityManager.clear();
 
         mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
-                        .with(asUser("bruno@example.com")))
+                        .with(asUser("Bruno")))
                 .andExpect(status().isCreated());
         entityManager.flush();
         entityManager.clear();
@@ -263,9 +263,9 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("GET /admin/events/{eventId}/registrations - should list only active registrations, sorted by user name")
     void getEventAttendees_whenOneRegistrationWasCancelled_listsOnlyActiveOnes() throws Exception {
-        User bruno = userRepository.save(userNamed("Bruno", "bruno@example.com"));
-        User ana = userRepository.save(userNamed("Ana", "ana@example.com"));
-        User carla = userRepository.save(userNamed("Carla", "carla@example.com"));
+        User bruno = userRepository.save(userNamed("Bruno"));
+        User ana = userRepository.save(userNamed("Ana"));
+        User carla = userRepository.save(userNamed("Carla"));
         Event event = saveEvent();
         registrationsRepository.save(EventRegistration.builder().user(bruno).event(event).build());
         registrationsRepository.save(EventRegistration.builder().user(ana).event(event).build());
@@ -279,7 +279,6 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].name").value("Ana"))
-                .andExpect(jsonPath("$.content[0].email").value("ana@example.com"))
                 .andExpect(jsonPath("$.content[1].name").value("Bruno"));
     }
 
@@ -315,8 +314,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
         Event event = saveEvent(3);
         User first = userRepository.save(validUser());
         User second = validUser();
-        second.setEmail("second@example.com");
-        second.setExternalId(subOf("second@example.com"));
+        second.setExternalId(subOf("second"));
         second = userRepository.save(second);
         registrationsRepository.save(EventRegistration.builder().user(first).event(event).build());
         registrationsRepository.save(EventRegistration.builder().user(second).event(event).build());
@@ -378,7 +376,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
     void getEventById_whenRegistrationsExist_returnsRemainingSpots() throws Exception {
         Event event = saveEvent("Spots by id", 10);
         saveRegistrations(event, 3);
-        User cancelledUser = userRepository.save(userNamed("Cancelled", "cancelled@example.com"));
+        User cancelledUser = userRepository.save(userNamed("Cancelled"));
         EventRegistration cancelled = registrationsRepository.save(
                 EventRegistration.builder().user(cancelledUser).event(event).build());
         registrationsRepository.delete(cancelled); // soft delete (@SQLDelete)
@@ -429,7 +427,7 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
 
     private void saveRegistrations(Event event, int count) {
         for (int i = 1; i <= count; i++) {
-            User user = userRepository.save(userNamed("User " + i, "user" + i + "@example.com"));
+            User user = userRepository.save(userNamed("User " + i));
             registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
         }
     }
@@ -477,15 +475,14 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .build());
     }
 
-    private User userNamed(String name, String email) {
+    private User userNamed(String name) {
         User user = validUser();
         user.setName(name);
-        user.setEmail(email);
-        user.setExternalId(subOf(email));
+        user.setExternalId(subOf(name));
         return user;
     }
 
-    private RequestPostProcessor asUser(String email) {
-        return authenticatedAs(subOf(email));
+    private RequestPostProcessor asUser(String name) {
+        return authenticatedAs(subOf(name));
     }
 }

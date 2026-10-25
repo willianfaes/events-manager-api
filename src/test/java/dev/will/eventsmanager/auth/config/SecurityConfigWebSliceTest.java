@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -34,11 +33,6 @@ class SecurityConfigWebSliceTest {
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
-
-    // The app still has one for /auth/login (until #142). Without it, a rejected token reaches the exposed
-    // AuthenticationManager, which delegates to itself: StackOverflowError.
-    @MockitoBean
-    private UserDetailsService userDetailsService;
 
     @Test
     @DisplayName("lets a token in the ADMIN group into /admin")

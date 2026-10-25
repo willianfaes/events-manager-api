@@ -80,8 +80,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
     void getRegisteredEventIds_shouldReturnOnlyTheLoggedUsersActiveRegistrations() throws Exception {
         User user = userRepository.save(validUser());
         User other = validUser();
-        other.setEmail("other@example.com");
-        other.setExternalId(subOf("other@example.com"));
+        other.setExternalId(subOf("other"));
         other = userRepository.save(other);
 
         Event registered = saveEvent("Registered");
