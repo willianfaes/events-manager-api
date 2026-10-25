@@ -85,7 +85,7 @@ Results are available at [http://localhost:9000/dashboard?id=events-manager-api]
    cp .env.example .env
    cp src/main/resources/application-local.properties.example src/main/resources/application-local.properties
 ```
-> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs `JWT_SECRET` (at least 32 bytes, the app refuses to start without it) and, for the monitoring profile, `GRAFANA_PASSWORD`.
+> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs `JWT_SECRET` (at least 32 bytes, the app refuses to start without it), the Cognito values (see [Logging in](#logging-in-aws-cognito)) and, for the monitoring profile, `GRAFANA_PASSWORD`.
 
 2. Build and start the stack:
 ```bash
@@ -169,3 +169,25 @@ docker compose up -d db
 ```
 
 Then run the app normally from IntelliJ (or `./mvnw spring-boot:run`) — the `local` Spring profile is active by default, reading your password from `application-local.properties` (see Setup step 1 above). No IDE-specific run configuration is needed.
+
+### Logging in (AWS Cognito)
+
+The API validates tokens issued by an AWS Cognito user pool (`infra/cognito.tf`) and never sees a password. It does not start without the issuer; the other two values only add the login button to Swagger UI.
+
+| Value | `application-local.properties` | `.env` (Docker) |
+|---|---|---|
+| Issuer (required) | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `COGNITO_ISSUER_URI` |
+| Hosted login page | `app.cognito.hosted-ui-url` | `COGNITO_HOSTED_UI_URL` |
+| Swagger client id | `springdoc.swagger-ui.oauth.client-id` | `COGNITO_CLIENT_ID` |
+
+The project's pool (public values, not secrets; `terraform output` in `infra/` prints the same):
+
+```
+issuer:    https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_3VrOILR4Y
+hosted UI: https://events-manager-164106395660.auth.eu-north-1.amazoncognito.com
+client id: v4gdb6t181545k46nd74lpi9t
+```
+
+In Swagger UI (`http://localhost:8080/swagger-ui.html`), click **Authorize** and, under `cognito`, leave `client_secret` empty, tick the scopes and log in as `demo@example.com` / `Demo1234!`. Or paste a token from the CLI command in `infra/README.md` under `bearerAuth`. The login button only works on `localhost:8080`, the only callback the pool accepts.
+
+> If startup fails with `Error processing condition on ...jwtDecoderByIssuerUri`, the issuer is missing.
