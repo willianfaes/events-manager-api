@@ -107,3 +107,30 @@ resource "aws_cognito_user_in_group" "demo_admin" {
   group_name   = aws_cognito_user_group.admin.name
   username     = aws_cognito_user.demo_admin[0].username
 }
+
+# Users for the k6 registration race (load-test/k6/script.js logs each one in). Without the password none is created.
+locals {
+  load_test_users = var.load_test_password == null ? 0 : 200
+}
+
+resource "aws_cognito_user" "load_test" {
+  count = local.load_test_users
+
+  user_pool_id   = aws_cognito_user_pool.main.id
+  username       = "load-test-user-${count.index + 1}@example.com"
+  password       = var.load_test_password
+  message_action = "SUPPRESS"
+
+  attributes = {
+    email          = "load-test-user-${count.index + 1}@example.com"
+    email_verified = "true"
+  }
+}
+
+resource "aws_cognito_user_in_group" "load_test" {
+  count = local.load_test_users
+
+  user_pool_id = aws_cognito_user_pool.main.id
+  group_name   = aws_cognito_user_group.user.name
+  username     = aws_cognito_user.load_test[count.index].username
+}

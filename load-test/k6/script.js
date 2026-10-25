@@ -3,9 +3,12 @@ import { check, fail } from 'k6';
 import exec from 'k6/execution';
 import { Counter } from 'k6/metrics';
 
-const BASE = __ENV.BASE_URL || 'http://events-manager:8080';
+const BASE = __ENV.BASE_URL || 'http://events-manager:8080'; // NOSONAR: internal compose network, the app serves plain HTTP
 const USERS = 200;
-const PASSWORD = 'LoadTest1234!';
+// The load-test users are created in the Cognito pool by infra/cognito.tf (load_test_password).
+const ISSUER = __ENV.COGNITO_ISSUER_URI;
+const CLIENT_ID = __ENV.COGNITO_CLIENT_ID;
+const PASSWORD = __ENV.LOAD_TEST_PASSWORD;
 const LIST_SIZE = 20;
 const LIST_PAGES = 50;
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -15,6 +18,8 @@ const rejected = new Counter('registrations_rejected');
 
 export const options = {
   summaryTrendStats: ['avg', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
+  // 200 Cognito logins (a round trip to AWS each) do not fit in the default 60 s.
+  setupTimeout: '5m',
   scenarios: {
     race: {
       executor: 'per-vu-iterations',
@@ -42,7 +47,7 @@ export const options = {
   },
 };
 
-function email(n) {
+function username(n) {
   return `load-test-user-${n}@example.com`;
 }
 
@@ -50,25 +55,45 @@ function bearer(token) {
   return { Authorization: `Bearer ${token}` };
 }
 
+// Logs in through the Cognito API (the same call as `aws cognito-idp initiate-auth`); the endpoint is the
+// issuer's origin. The token is signed by Cognito, so the API validates it like any other.
+function cognitoLogin(n, tags) {
+  const res = http.post(ISSUER.split('/').slice(0, 3).join('/') + '/', JSON.stringify({
+    AuthFlow: 'USER_PASSWORD_AUTH',
+    ClientId: CLIENT_ID,
+    AuthParameters: { USERNAME: username(n), PASSWORD: PASSWORD },
+  }), {
+    headers: {
+      'Content-Type': 'application/x-amz-json-1.1',
+      'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+    },
+    tags,
+  });
+  const token = res.status === 200 ? res.json('AuthenticationResult.AccessToken') : null;
+  if (!token) {
+    fail(`Cognito login failed for ${username(n)} (status ${res.status})`);
+  }
+  return token;
+}
+
 export function setup() {
+  if (!ISSUER || !CLIENT_ID || !PASSWORD) {
+    fail('set COGNITO_ISSUER_URI, COGNITO_CLIENT_ID and LOAD_TEST_PASSWORD in .env');
+  }
   const setupTag = (name) => ({ phase: 'setup', name: `setup: ${name}` });
   const tokens = [];
 
   for (let n = 1; n <= USERS; n++) {
-    // A second run gets a conflict here, which is fine: the user already exists.
-    http.post(`${BASE}/auth/register`, JSON.stringify({
-      name: `Load Test ${n}`,
-      email: email(n),
-      age: 30,
-      password: PASSWORD,
-      address: { street: 'Via del Corso 1', city: 'Rome', stateOrProvince: 'Lazio', postalCode: '00186', countryCode: 'IT' },
-    }), { headers: JSON_HEADERS, tags: setupTag('register') });
+    const token = cognitoLogin(n, setupTag('cognito login'));
 
-    const login = http.post(`${BASE}/auth/login`, JSON.stringify({ email: email(n), password: PASSWORD }),
-      { headers: JSON_HEADERS, tags: setupTag('login') });
-    const token = login.json('token');
-    if (!token) {
-      fail(`login failed for ${email(n)} (status ${login.status})`);
+    // A second run gets 409 here, which is fine: the profile already exists.
+    const profile = http.post(`${BASE}/users/me`, JSON.stringify({
+      name: `Load Test ${n}`,
+      age: 30,
+      address: { street: 'Via del Corso 1', city: 'Rome', stateOrProvince: 'Lazio', postalCode: '00186', countryCode: 'IT' },
+    }), { headers: { ...JSON_HEADERS, ...bearer(token) }, tags: setupTag('create profile') });
+    if (profile.status !== 201 && profile.status !== 409) {
+      fail(`profile failed for ${username(n)} (status ${profile.status})`);
     }
     tokens.push(token);
   }
