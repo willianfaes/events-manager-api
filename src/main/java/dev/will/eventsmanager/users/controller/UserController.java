@@ -5,18 +5,24 @@ import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
+import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
+import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +40,23 @@ public class UserController {
 
     public UserController(UserService userService) {
         this.userService = userService;
+    }
+
+    @PostMapping("/me")
+    @Operation(
+            summary = "Create my profile",
+            description = "Creates the profile of the authenticated user, linked to the token's subject. "
+                    + "The account itself (e-mail, password) lives in Cognito.")
+    @ApiResponse(responseCode = "201", description = "The profile has been created")
+    @ApiResponse(responseCode = "400", description = "Invalid body",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "The user already has a profile",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<ProfileResponse> createProfile(
+            Principal principal,
+            @RequestBody @Valid CreateProfileRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createProfile(principal.getName(), request));
     }
 
     @GetMapping("/me/registrations")

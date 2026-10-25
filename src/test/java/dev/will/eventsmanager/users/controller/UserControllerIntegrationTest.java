@@ -13,21 +13,29 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
+import static org.assertj.core.api.BDDAssertions.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class UserControllerIntegrationTest extends AbstractIntegrationTest  {
     private static final LocalDateTime DEFAULT_FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);
+    private static final String PROFILE_JSON = """
+            {"name": "Demo User", "age": 30, "address": {"street": "Via del Corso 1", "city": "Rome",
+             "postalCode": "00186", "countryCode": "IT"}}
+            """;
 
     @Autowired
     MockMvc mockMvc;
@@ -99,6 +107,30 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.eventIds.length()").value(1))
                 .andExpect(jsonPath("$.eventIds[0]").value(registered.getId()));
+    }
+
+    @Test
+    @DisplayName("POST /users/me - should save the profile linked to the token's sub")
+    void createProfile_shouldSaveTheProfileLinkedToTheSub() throws Exception {
+        mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isCreated());
+        entityManager.flush();
+        entityManager.clear();
+
+        User saved = userRepository.findByExternalId(USER_SUB).orElseThrow();
+        then(saved.getName()).isEqualTo("Demo User");
+        then(saved.getAddress().getCity()).isEqualTo("Rome");
+    }
+
+    @Test
+    @DisplayName("POST /users/me - should return 409 when the sub already has a profile")
+    void createProfile_shouldReturnConflictWhenTheProfileExists() throws Exception {
+        userRepository.save(validUser());
+
+        mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isConflict());
     }
 
     private Event saveEvent(String name) {

@@ -1,7 +1,14 @@
 package dev.will.eventsmanager.users.service;
 
+import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
+import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
+import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
+import dev.will.eventsmanager.users.entity.User;
+import dev.will.eventsmanager.users.mapper.ProfileMapper;
+import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,14 +19,24 @@ import java.util.List;
 import java.util.Set;
 
 import static dev.will.eventsmanager.TestFixtures.USER_SUB;
-import static org.assertj.core.api.BDDAssertions.then;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
     @Mock
     EventRegistrationsRepository eventRegistrationsRepository;
+
+    @Mock
+    UserRepository userRepository;
+
+    @Mock
+    ProfileMapper profileMapper;
 
     @InjectMocks
     UserService userService;
@@ -32,6 +49,36 @@ class UserServiceTest {
 
         RegisteredEventsResponse result = userService.findRegisteredEventIds(USER_SUB, requested);
 
-        then(result.eventIds()).containsExactly(2L, 5L);
+        assertThat(result.eventIds()).containsExactly(2L, 5L);
+    }
+
+    @Test
+    void createProfile_linksTheNewProfileToTheSub() {
+        CreateProfileRequest request = profileRequest();
+        User profile = User.builder().name("Demo User").build();
+        ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
+        given(userRepository.existsByExternalId(USER_SUB)).willReturn(false);
+        given(profileMapper.toEntity(request)).willReturn(profile);
+        given(userRepository.save(profile)).willReturn(profile);
+        given(profileMapper.toResponse(profile)).willReturn(expected);
+
+        ProfileResponse result = userService.createProfile(USER_SUB, request);
+
+        assertThat(result).isEqualTo(expected);
+        assertThat(profile.getExternalId()).isEqualTo(USER_SUB);
+    }
+
+    @Test
+    void createProfile_rejectsASecondProfileForTheSameSub() {
+        given(userRepository.existsByExternalId(USER_SUB)).willReturn(true);
+
+        assertThatThrownBy(() -> userService.createProfile(USER_SUB, profileRequest()))
+                .isInstanceOf(ProfileAlreadyExistsException.class);
+        then(userRepository).should(never()).save(any());
+    }
+
+    private static CreateProfileRequest profileRequest() {
+        return new CreateProfileRequest("Demo User", 30,
+                new UserAddressRequest("Via del Corso 1", null, "Rome", null, "00186", "IT"));
     }
 }
