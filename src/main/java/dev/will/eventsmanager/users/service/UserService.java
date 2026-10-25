@@ -2,6 +2,7 @@ package dev.will.eventsmanager.users.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
@@ -37,6 +38,12 @@ public class UserService {
         User profile = profileMapper.toEntity(request);
         profile.setExternalId(externalId);
         return profileMapper.toResponse(userRepository.save(profile));
+    }
+
+    public ProfileResponse getProfile(String externalId) {
+        User profile = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile", externalId));
+        return profileMapper.toResponse(profile);
     }
 
     public PageResponse<MyRegistrationResponse> getUserRegisteredEvents(String externalId, Pageable pageable) {
