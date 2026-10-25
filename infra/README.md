@@ -22,6 +22,12 @@ groups. Users are created by an admin (no public sign-up).
 
 - Demo user: `demo@example.com` / `Demo1234!` (group `USER`). The password is public on purpose.
 - Demo admin: `admin-demo@example.com`, only created when `demo_admin_password` is set in `terraform.tfvars`.
+- Load-test users for k6: `load-test-user-1@example.com` to `load-test-user-200@example.com` (group `USER`), only
+  created when `load_test_password` is set in `terraform.tfvars`. Put the same value in `LOAD_TEST_PASSWORD` in `.env`.
+  The pool policy applies: at least 8 characters with lowercase, uppercase, a number and a symbol. Create only them
+  (a plain `apply` also brings up the EC2 stack):
+
+      terraform apply -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test
 - The client only accepts the callback `http://localhost:8080/swagger-ui/oauth2-redirect.html`: Cognito requires
   HTTPS for any other host, so login from the deployed Swagger waits for a domain.
 

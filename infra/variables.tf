@@ -34,3 +34,10 @@ variable "demo_admin_password" {
   default     = null
   sensitive   = true
 }
+
+variable "load_test_password" {
+  description = "Password of the k6 load-test users; set it in terraform.tfvars (git-ignored) and in .env. Without it they are not created"
+  type        = string
+  default     = null
+  sensitive   = true
+}
