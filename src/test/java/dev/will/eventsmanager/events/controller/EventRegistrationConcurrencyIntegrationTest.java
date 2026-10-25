@@ -29,7 +29,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static dev.will.eventsmanager.TestFixtures.authenticatedAs;
-import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -39,7 +38,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 // so the data has to be committed. Rows are removed in cleanUp().
 class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
-    private static final String EMAIL_PREFIX = "concurrency-";
+    private static final String USER_PREFIX = "concurrency-";
     private static final LocalDateTime FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);
 
     @Autowired
@@ -69,8 +68,8 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
             jdbcTemplate.update("DELETE FROM event_addresses WHERE id = ?", addressId);
         }
         List<Long> userAddressIds = jdbcTemplate.queryForList(
-                "SELECT address_id FROM users WHERE email LIKE ?", Long.class, EMAIL_PREFIX + "%");
-        jdbcTemplate.update("DELETE FROM users WHERE email LIKE ?", EMAIL_PREFIX + "%");
+                "SELECT address_id FROM users WHERE external_id LIKE ?", Long.class, USER_PREFIX + "%");
+        jdbcTemplate.update("DELETE FROM users WHERE external_id LIKE ?", USER_PREFIX + "%");
         userAddressIds.forEach(id -> jdbcTemplate.update("DELETE FROM user_addresses WHERE id = ?", id));
     }
 
@@ -137,8 +136,7 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
         List<User> users = new ArrayList<>();
         for (int i = 0; i < amount; i++) {
             User user = validUser();
-            user.setEmail(EMAIL_PREFIX + UUID.randomUUID() + "@example.com");
-            user.setExternalId(subOf(user.getEmail()));
+            user.setExternalId(USER_PREFIX + UUID.randomUUID());
             users.add(userRepository.save(user));
         }
         return users;

@@ -1,7 +1,6 @@
 package dev.will.eventsmanager;
 
 import dev.will.eventsmanager.common.PageResponse;
-import dev.will.eventsmanager.users.entity.Role;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.entity.UserAddress;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -14,16 +13,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 public class TestFixtures {
     private TestFixtures() {}
 
-    public static final String USER_EMAIL = "user@example.com";
     public static final String USER_SUB = "user-sub-0001";
 
     public static RequestPostProcessor authenticatedUser() {
         return authenticatedAs(USER_SUB);
     }
 
-    /** The token subject of the test user with this e-mail; unique per e-mail. */
-    public static String subOf(String email) {
-        return "sub-" + email;
+    /** A token subject for one more test user; unique per label. */
+    public static String subOf(String label) {
+        return "sub-" + label;
     }
 
     public static RequestPostProcessor authenticatedAdmin() {
@@ -49,9 +47,7 @@ public class TestFixtures {
 
         return User.builder()
                 .name("Test User")
-                .email(USER_EMAIL)
                 .externalId(USER_SUB)
-                .role(Role.USER)
                 .address(userAddress)
                 .build();
     }

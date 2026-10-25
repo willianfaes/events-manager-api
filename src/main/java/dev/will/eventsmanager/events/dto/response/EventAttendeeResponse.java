@@ -6,7 +6,6 @@ public record EventAttendeeResponse(
         Long registrationId,
         Long userId,
         String name,
-        String email,
         LocalDateTime registeredAt
 ) {
 }

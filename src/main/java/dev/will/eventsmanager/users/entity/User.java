@@ -29,16 +29,11 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(unique = true)
-    private String email;
-
     private Integer age;
 
-    // The `sub` of the identity provider's token; null until the profile is linked.
-    @Column(name = "external_id", unique = true)
+    // The `sub` of the identity provider's token.
+    @Column(name = "external_id", nullable = false, unique = true)
     private String externalId;
-
-    private String password;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false, cascade = CascadeType.ALL)
     @JoinColumn(name = "address_id", nullable = false)
@@ -57,8 +52,4 @@ public class User {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private Role role;
 }

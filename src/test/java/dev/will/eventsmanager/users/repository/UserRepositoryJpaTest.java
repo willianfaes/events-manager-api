@@ -42,8 +42,8 @@ class UserRepositoryJpaTest {
         user.setExternalId("sub-123");
         userRepository.saveAndFlush(user);
 
-        then(userRepository.findByExternalId("sub-123")).get().extracting(User::getEmail)
-                .isEqualTo(TestFixtures.USER_EMAIL);
+        then(userRepository.findByExternalId("sub-123")).get().extracting(User::getName)
+                .isEqualTo(user.getName());
         then(userRepository.findByExternalId("sub-999")).isEmpty();
     }
 
@@ -55,7 +55,6 @@ class UserRepositoryJpaTest {
         userRepository.saveAndFlush(first);
 
         User second = TestFixtures.validUser();
-        second.setEmail("other@example.com");
         second.setExternalId("sub-123");
 
         thenThrownBy(() -> userRepository.saveAndFlush(second)).isInstanceOf(DataIntegrityViolationException.class);
