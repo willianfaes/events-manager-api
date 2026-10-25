@@ -3,10 +3,15 @@ package dev.will.eventsmanager.users.controller;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
+import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.EventSummaryResponse;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
+import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
+import dev.will.eventsmanager.users.dto.response.UserAddressResponse;
 import dev.will.eventsmanager.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,12 +37,20 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class UserControllerWebSliceTest {
+
+    private static final String PROFILE_JSON = """
+            {"name": "Demo User", "age": 30, "address": {"street": "Via del Corso 1", "city": "Rome",
+             "postalCode": "00186", "countryCode": "IT"}}
+            """;
+    private static final CreateProfileRequest PROFILE_REQUEST = new CreateProfileRequest("Demo User", 30,
+            new UserAddressRequest("Via del Corso 1", null, "Rome", null, "00186", "IT"));
 
     @Autowired
     private MockMvc mockMvc;
@@ -177,6 +191,45 @@ class UserControllerWebSliceTest {
                 .andExpect(jsonPath("$.message", containsString("eventIds")));
 
         then(userService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("POST /users/me - should return 201 with the profile created for the token's sub")
+    void createProfile_should_return_created_profile() throws Exception {
+        given(userService.createProfile(USER_SUB, PROFILE_REQUEST)).willReturn(new ProfileResponse("Demo User", 30,
+                new UserAddressResponse(1L, "Via del Corso 1", null, "Rome", null, "00186", "IT")));
+
+        mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Demo User"))
+                .andExpect(jsonPath("$.address.city").value("Rome"));
+    }
+
+    @Test
+    @DisplayName("POST /users/me - should return 400 when the name is missing")
+    void createProfile_should_return_bad_request_when_name_is_missing() throws Exception {
+        mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"age": 30, "address": {"street": "Via del Corso 1", "city": "Rome",
+                                 "postalCode": "00186", "countryCode": "IT"}}
+                                """)
+                        .with(authenticatedUser()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("name")));
+
+        then(userService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("POST /users/me - should return 409 when the profile already exists")
+    void createProfile_should_return_conflict_when_profile_exists() throws Exception {
+        given(userService.createProfile(USER_SUB, PROFILE_REQUEST)).willThrow(new ProfileAlreadyExistsException());
+
+        mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     @Test
