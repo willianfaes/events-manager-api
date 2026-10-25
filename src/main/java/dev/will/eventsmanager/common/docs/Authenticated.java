@@ -13,7 +13,9 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
+// Either scheme authorizes the call: a pasted token or the Cognito login.
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "cognito")
 @ApiResponse(responseCode = "401", description = "Missing or invalid token",
         content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
 public @interface Authenticated {

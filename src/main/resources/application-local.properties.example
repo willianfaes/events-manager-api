@@ -9,3 +9,6 @@ jwt.secret=change.me-not-32-bytes
 
 # Issuer of the Cognito user pool: `terraform output cognito_issuer_uri` in infra/ (a public URL, not a secret).
 spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
+# Optional, for the login button in Swagger UI: `terraform output cognito_hosted_ui_url` and `cognito_client_id`.
+app.cognito.hosted-ui-url=https://<domain>.auth.<region>.amazoncognito.com
+springdoc.swagger-ui.oauth.client-id=<client-id>
