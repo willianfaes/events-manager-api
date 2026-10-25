@@ -33,7 +33,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
     private Integer age;
