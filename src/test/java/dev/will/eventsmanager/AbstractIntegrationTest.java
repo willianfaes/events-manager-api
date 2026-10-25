@@ -41,6 +41,5 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.data.redis.host", redis::getHost);
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
-        registry.add("jwt.secret", () -> "integration-test-secret-with-32-bytes-or-more");
     }
 }
