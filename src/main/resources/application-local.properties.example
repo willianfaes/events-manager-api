@@ -3,10 +3,6 @@
 # be duplicated. Keep this password in sync with .env's DB_PASSWORD.
 spring.datasource.password=changeme
 
-# Secret used to sign JWTs. Must have at least 32 bytes; the app refuses to start otherwise.
-# Generate one with: openssl rand -base64 32
-jwt.secret=change.me-not-32-bytes
-
 # Issuer of the Cognito user pool: `terraform output cognito_issuer_uri` in infra/ (a public URL, not a secret).
 spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
 # Optional, for the login button in Swagger UI: `terraform output cognito_hosted_ui_url` and `cognito_client_id`.

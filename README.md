@@ -4,7 +4,7 @@ An API to manage local events and user registrations based on location relevance
 See ROADMAP.md for the full data model, endpoint list, and future plans.
 
 ## Core Features (MVP)
-- User Authentication (JWT)
+- User authentication with AWS Cognito (OIDC tokens)
 - Event CRUD
 - Event categories (party, sport, concert, cultural)
 - User interest selection across multiple categories
@@ -85,7 +85,7 @@ Results are available at [http://localhost:9000/dashboard?id=events-manager-api]
    cp .env.example .env
    cp src/main/resources/application-local.properties.example src/main/resources/application-local.properties
 ```
-> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs `JWT_SECRET` (at least 32 bytes, the app refuses to start without it), the Cognito values (see [Logging in](#logging-in-aws-cognito)) and, for the monitoring profile, `GRAFANA_PASSWORD`.
+> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs the Cognito values (see [Logging in](#logging-in-aws-cognito)) and, for the monitoring profile, `GRAFANA_PASSWORD`.
 
 2. Build and start the stack:
 ```bash
