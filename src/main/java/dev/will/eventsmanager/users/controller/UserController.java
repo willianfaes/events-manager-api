@@ -16,12 +16,12 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.util.Set;
 
 
@@ -40,14 +40,14 @@ public class UserController {
     @Operation(summary = "Get user registered events")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved user registered events")
     public ResponseEntity<PageResponse<MyRegistrationResponse>> getUserRegisteredEvents(
-            @AuthenticationPrincipal String loggedUser,
+            Principal principal,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "NEWEST") RegistrationSort sort
     ) {
         Pageable pageable = PageRequests.of(page, size, sort.toSort());
         PageResponse<MyRegistrationResponse> registeredEvents =
-                userService.getUserRegisteredEvents(loggedUser, pageable);
+                userService.getUserRegisteredEvents(principal.getName(), pageable);
         return ResponseEntity.ok(registeredEvents);
     }
 
@@ -62,9 +62,9 @@ public class UserController {
             description = "eventIds is missing, empty, has a non-numeric value or has more than 50 ids",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<RegisteredEventsResponse> getRegisteredEventIds(
-            @AuthenticationPrincipal String loggedUser,
+            Principal principal,
             @RequestParam @NotEmpty @Size(max = PageRequests.MAX_SIZE) Set<Long> eventIds
     ) {
-        return ResponseEntity.ok(userService.findRegisteredEventIds(loggedUser, eventIds));
+        return ResponseEntity.ok(userService.findRegisteredEventIds(principal.getName(), eventIds));
     }
 }

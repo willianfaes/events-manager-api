@@ -29,13 +29,13 @@ public interface EventRegistrationsRepository extends JpaRepository<EventRegistr
     Optional<EventRegistration> findByUserIdAndEventIdIncludeDeleted(@Param("userId") Long userId,
                                                                      @Param("eventId") Long eventId);
 
-    @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.event e JOIN FETCH e.address WHERE r.user.email = :email",
-            countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.user.email = :email")
-    Page<EventRegistration> findByUserEmailWithEvent(@Param("email") String email, Pageable pageable);
+    @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.event e JOIN FETCH e.address WHERE r.user.externalId = :externalId",
+            countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.user.externalId = :externalId")
+    Page<EventRegistration> findByUserExternalIdWithEvent(@Param("externalId") String externalId, Pageable pageable);
 
     @Query("SELECT r.event.id FROM EventRegistration r "
-            + "WHERE r.user.email = :email AND r.event.id IN :eventIds ORDER BY r.event.id")
-    List<Long> findRegisteredEventIds(@Param("email") String email, @Param("eventIds") Collection<Long> eventIds);
+            + "WHERE r.user.externalId = :externalId AND r.event.id IN :eventIds ORDER BY r.event.id")
+    List<Long> findRegisteredEventIds(@Param("externalId") String externalId, @Param("eventIds") Collection<Long> eventIds);
 
     @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.user WHERE r.event.id = :eventId",
             countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.event.id = :eventId")

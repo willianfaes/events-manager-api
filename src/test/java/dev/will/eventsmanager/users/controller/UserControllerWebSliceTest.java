@@ -2,7 +2,6 @@ package dev.will.eventsmanager.users.controller;
 
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
-import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
 import dev.will.eventsmanager.users.dto.response.EventSummaryResponse;
@@ -16,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.emptyPage;
 import static org.hamcrest.Matchers.containsString;
@@ -44,7 +45,7 @@ class UserControllerWebSliceTest {
     private UserService userService;
 
     @MockitoBean
-    private TokenService tokenService;
+    private JwtDecoder jwtDecoder;
 
     @Test
     @DisplayName("GET /users/me/registrations - should return registered events with default pagination")
@@ -67,7 +68,7 @@ class UserControllerWebSliceTest {
 
         Pageable defaultPageable = PageRequest.of(0, 20, RegistrationSort.NEWEST.toSort());
 
-        given(userService.getUserRegisteredEvents("user@example.com", defaultPageable))
+        given(userService.getUserRegisteredEvents(USER_SUB, defaultPageable))
                 .willReturn(registeredEvents);
 
         mockMvc.perform(get("/users/me/registrations").with(authenticatedUser()))
@@ -75,40 +76,40 @@ class UserControllerWebSliceTest {
                 .andExpect(jsonPath("$.content[0].registrationId").value(registrationId))
                 .andExpect(jsonPath("$.content[0].event.id").value(eventId));
 
-        then(userService).should().getUserRegisteredEvents("user@example.com", defaultPageable);
+        then(userService).should().getUserRegisteredEvents(USER_SUB, defaultPageable);
     }
 
     @Test
     @DisplayName("GET /users/me/registrations - should forward page, size and sort query params to the service")
     void getUserRegisteredEvents_should_forward_pagination_params() throws Exception {
         Pageable expected = PageRequest.of(3, 10, RegistrationSort.OLDEST.toSort());
-        given(userService.getUserRegisteredEvents("user@example.com", expected)).willReturn(emptyPage());
+        given(userService.getUserRegisteredEvents(USER_SUB, expected)).willReturn(emptyPage());
 
         mockMvc.perform(get("/users/me/registrations")
                         .param("page", "3").param("size", "10").param("sort", "OLDEST")
                         .with(authenticatedUser()))
                 .andExpect(status().isOk());
 
-        then(userService).should().getUserRegisteredEvents("user@example.com", expected);
+        then(userService).should().getUserRegisteredEvents(USER_SUB, expected);
     }
 
     @Test
     @DisplayName("GET /users/me/registrations - should clamp page size to the maximum allowed")
     void getUserRegisteredEvents_should_clamp_size_when_above_maximum() throws Exception {
         Pageable expected = PageRequest.of(0, 50, RegistrationSort.NEWEST.toSort());
-        given(userService.getUserRegisteredEvents("user@example.com", expected)).willReturn(emptyPage());
+        given(userService.getUserRegisteredEvents(USER_SUB, expected)).willReturn(emptyPage());
 
         mockMvc.perform(get("/users/me/registrations").param("size", "1000")
                         .with(authenticatedUser()))
                 .andExpect(status().isOk());
 
-        then(userService).should().getUserRegisteredEvents("user@example.com", expected);
+        then(userService).should().getUserRegisteredEvents(USER_SUB, expected);
     }
 
     @Test
     @DisplayName("GET /users/me/registrations/events - should return 200 with the registered event ids")
     void getRegisteredEventIds_should_return_ids_found_by_the_service() throws Exception {
-        given(userService.findRegisteredEventIds("user@example.com", Set.of(1L, 2L, 3L, 5L)))
+        given(userService.findRegisteredEventIds(USER_SUB, Set.of(1L, 2L, 3L, 5L)))
                 .willReturn(new RegisteredEventsResponse(List.of(2L, 5L)));
 
         mockMvc.perform(get("/users/me/registrations/events").param("eventIds", "1,2,3,5")
@@ -121,14 +122,14 @@ class UserControllerWebSliceTest {
     @Test
     @DisplayName("GET /users/me/registrations/events - should pass repeated ids to the service only once")
     void getRegisteredEventIds_should_remove_repeated_ids() throws Exception {
-        given(userService.findRegisteredEventIds("user@example.com", Set.of(1L, 2L)))
+        given(userService.findRegisteredEventIds(USER_SUB, Set.of(1L, 2L)))
                 .willReturn(new RegisteredEventsResponse(List.of()));
 
         mockMvc.perform(get("/users/me/registrations/events").param("eventIds", "1,1,2,2")
                         .with(authenticatedUser()))
                 .andExpect(status().isOk());
 
-        then(userService).should().findRegisteredEventIds("user@example.com", Set.of(1L, 2L));
+        then(userService).should().findRegisteredEventIds(USER_SUB, Set.of(1L, 2L));
     }
 
     @Test

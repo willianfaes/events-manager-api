@@ -3,7 +3,6 @@ package dev.will.eventsmanager.events.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
-import dev.will.eventsmanager.auth.service.TokenService;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
@@ -26,6 +25,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -59,7 +59,7 @@ class AdminEventControllerWebSliceTest {
     private EventService eventService;
 
     @MockitoBean
-    private TokenService tokenService;
+    private JwtDecoder jwtDecoder;
 
     @Test
     @WithMockUser(roles = "ADMIN")

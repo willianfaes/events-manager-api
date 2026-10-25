@@ -20,8 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -29,10 +27,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedAdmin;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.mockito.Mockito.mock;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -116,8 +114,7 @@ class EventListingCacheFallbackIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("POST /admin/events - should still create the event when the cache fails")
     void createEvent_whenTheCacheFails_stillCreatesTheEvent() throws Exception {
         mockMvc.perform(post("/admin/events")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(
-                                "admin@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))))
+                        .with(authenticatedAdmin())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

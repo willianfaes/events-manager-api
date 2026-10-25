@@ -20,8 +20,6 @@ import org.springframework.http.MediaType;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -33,11 +31,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.will.eventsmanager.TestFixtures.authenticatedAdmin;
+import static dev.will.eventsmanager.TestFixtures.authenticatedAs;
+import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -220,17 +220,16 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
     private User saveUser() {
         User user = validUser();
         user.setEmail(EMAIL_PREFIX + UUID.randomUUID() + "@example.com");
+        user.setExternalId(subOf(user.getEmail()));
         return userRepository.save(user);
     }
 
     private RequestPostProcessor asEmail(String email) {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
+        return authenticatedAs(subOf(email));
     }
 
     private RequestPostProcessor asAdmin() {
-        return authentication(new UsernamePasswordAuthenticationToken(
-                "admin@example.com", null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+        return authenticatedAdmin();
     }
 
     private String eventBody(String name) {

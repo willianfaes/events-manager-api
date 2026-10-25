@@ -17,6 +17,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,7 +57,7 @@ class EventRegistrationsRepositoryJpaTest {
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                EMAIL, List.of(first.getId(), second.getId(), third.getId()));
+                subOf(EMAIL), List.of(first.getId(), second.getId(), third.getId()));
 
         assertThat(result).containsExactly(first.getId(), third.getId());
     }
@@ -70,7 +71,7 @@ class EventRegistrationsRepositoryJpaTest {
         em.flush();
         em.clear();
 
-        List<Long> result = registrationsRepository.findRegisteredEventIds(EMAIL, List.of(event.getId()));
+        List<Long> result = registrationsRepository.findRegisteredEventIds(subOf(EMAIL), List.of(event.getId()));
 
         assertThat(result).isEmpty();
     }
@@ -83,7 +84,7 @@ class EventRegistrationsRepositoryJpaTest {
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                EMAIL, List.of(event.getId(), 999_999L));
+                subOf(EMAIL), List.of(event.getId(), 999_999L));
 
         assertThat(result).containsExactly(event.getId());
     }
@@ -100,7 +101,7 @@ class EventRegistrationsRepositoryJpaTest {
         em.clear();
 
         List<Long> result = registrationsRepository.findRegisteredEventIds(
-                EMAIL, List.of(shared.getId(), onlyBruno.getId()));
+                subOf(EMAIL), List.of(shared.getId(), onlyBruno.getId()));
 
         assertThat(result).containsExactly(shared.getId());
     }
@@ -146,6 +147,7 @@ class EventRegistrationsRepositoryJpaTest {
     private User saveUser(String email) {
         User user = validUser();
         user.setEmail(email);
+        user.setExternalId(subOf(email));
         return em.persistAndFlush(user);
     }
 

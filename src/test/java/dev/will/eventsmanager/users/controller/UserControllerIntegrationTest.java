@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -72,6 +73,7 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
         User user = userRepository.save(validUser());
         User other = validUser();
         other.setEmail("other@example.com");
+        other.setExternalId(subOf("other@example.com"));
         other = userRepository.save(other);
 
         Event registered = saveEvent("Registered");

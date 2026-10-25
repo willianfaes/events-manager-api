@@ -60,6 +60,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      COGNITO_ISSUER_URI: ${COGNITO_ISSUER_URI}
+      COGNITO_HOSTED_UI_URL: ${COGNITO_HOSTED_UI_URL:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health | grep -q UP"]
       interval: 10s
