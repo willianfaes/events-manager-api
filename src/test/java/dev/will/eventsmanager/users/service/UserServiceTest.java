@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.users.service;
 
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
@@ -16,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static dev.will.eventsmanager.TestFixtures.USER_SUB;
@@ -75,6 +77,24 @@ class UserServiceTest {
         assertThatThrownBy(() -> userService.createProfile(USER_SUB, profileRequest()))
                 .isInstanceOf(ProfileAlreadyExistsException.class);
         then(userRepository).should(never()).save(any());
+    }
+
+    @Test
+    void getProfile_returnsTheProfileLinkedToTheSub() {
+        User profile = User.builder().name("Demo User").build();
+        ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(profile));
+        given(profileMapper.toResponse(profile)).willReturn(expected);
+
+        assertThat(userService.getProfile(USER_SUB)).isEqualTo(expected);
+    }
+
+    @Test
+    void getProfile_throwsNotFoundWhenTheSubHasNoProfile() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getProfile(USER_SUB))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     private static CreateProfileRequest profileRequest() {

@@ -59,6 +59,15 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createProfile(principal.getName(), request));
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Get my profile")
+    @ApiResponse(responseCode = "200", description = "The profile of the authenticated user")
+    @ApiResponse(responseCode = "404", description = "The user has no profile yet; create it with POST /users/me",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<ProfileResponse> getProfile(Principal principal) {
+        return ResponseEntity.ok(userService.getProfile(principal.getName()));
+    }
+
     @GetMapping("/me/registrations")
     @Operation(summary = "Get user registered events")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved user registered events")

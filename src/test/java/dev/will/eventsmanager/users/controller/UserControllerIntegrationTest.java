@@ -132,6 +132,19 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    @DisplayName("GET /users/me - should return the saved profile with its address")
+    void getProfile_shouldReturnTheSavedProfileWithItsAddress() throws Exception {
+        userRepository.save(validUser());
+        entityManager.flush();
+        entityManager.clear(); // read the profile back from the database, not from the persistence context
+
+        mockMvc.perform(get("/users/me").with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Test User"))
+                .andExpect(jsonPath("$.address.city").value("Sample City"));
+    }
+
     private Event saveEvent(String name) {
         EventAddress address = EventAddress.builder()
                 .street("123 Main St")

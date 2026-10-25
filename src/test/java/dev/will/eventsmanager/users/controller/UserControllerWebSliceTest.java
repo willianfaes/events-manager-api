@@ -4,6 +4,7 @@ import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
+import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
 import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
@@ -230,6 +231,28 @@ class UserControllerWebSliceTest {
                         .with(authenticatedUser()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    @DisplayName("GET /users/me - should return 200 with the profile of the token's sub")
+    void getProfile_should_return_the_profile() throws Exception {
+        given(userService.getProfile(USER_SUB)).willReturn(new ProfileResponse("Demo User", 30,
+                new UserAddressResponse(1L, "Via del Corso 1", null, "Rome", null, "00186", "IT")));
+
+        mockMvc.perform(get("/users/me").with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Demo User"))
+                .andExpect(jsonPath("$.address.city").value("Rome"));
+    }
+
+    @Test
+    @DisplayName("GET /users/me - should return 404 when the sub has no profile yet")
+    void getProfile_should_return_not_found_without_profile() throws Exception {
+        given(userService.getProfile(USER_SUB)).willThrow(new ResourceNotFoundException("Profile", USER_SUB));
+
+        mockMvc.perform(get("/users/me").with(authenticatedUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
     }
 
     @Test
