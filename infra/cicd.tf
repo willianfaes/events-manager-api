@@ -1,35 +1,19 @@
-locals {
-  github_repo = "willianfaes/events-manager-api"
+# GitHub Actions signs in with the access key of this user, kept in the repository secrets AWS_ACCESS_KEY_ID and
+# AWS_SECRET_ACCESS_KEY. OIDC (no stored key) would be better, but the organization SCP denies creating the OIDC
+# provider. The key is created by hand, never here, so the secret does not end up in the state (see README.md).
+# The name is generic on purpose: the notification service repository reuses this user.
+resource "aws_iam_user" "ci" {
+  name = "events-ci"
+
+  # The key lives in GitHub: destroying the user would kill it, so teardown.sh keeps this user and its policy.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
-# GitHub Actions proves who it is with a short-lived OIDC token, so no AWS key is stored in GitHub.
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-}
-
-resource "aws_iam_role" "github_deploy" {
-  name = "${var.name}-github-deploy"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Action    = "sts:AssumeRoleWithWebIdentity"
-      Principal = { Federated = aws_iam_openid_connect_provider.github.arn }
-      Condition = {
-        StringEquals = {
-          "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${local.github_repo}:ref:refs/heads/main"
-        }
-      }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "github_deploy" {
+resource "aws_iam_user_policy" "ci" {
   name = "publish-and-deploy"
-  role = aws_iam_role.github_deploy.id
+  user = aws_iam_user.ci.name
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -41,6 +25,8 @@ resource "aws_iam_role_policy" "github_deploy" {
         Resource = "*"
       },
       {
+        # Built from the name, not from the repository resource, because teardown destroys the repository and
+        # keeps this user.
         Effect = "Allow"
         Action = [
           "ecr:DescribeImages",
@@ -50,7 +36,7 @@ resource "aws_iam_role_policy" "github_deploy" {
           "ecr:CompleteLayerUpload",
           "ecr:PutImage",
         ]
-        Resource = aws_ecr_repository.api.arn
+        Resource = "arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/${var.name}-api"
       },
       {
         Effect   = "Allow"

@@ -13,11 +13,6 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
-output "github_deploy_role_arn" {
-  description = "Role the deploy workflow assumes through OIDC"
-  value       = aws_iam_role.github_deploy.arn
-}
-
 output "cognito_issuer_uri" {
   description = "Value of the API's issuer-uri: it validates the tokens against this pool"
   value       = "https://${aws_cognito_user_pool.main.endpoint}"
