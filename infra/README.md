@@ -1,6 +1,6 @@
 # infra
 
-Terraform for the AWS host, ECR and IAM. Run it from WSL, in this directory.
+Terraform for the AWS host, ECR, IAM and Cognito. Run it from WSL, in this directory.
 
 ## Remote state
 
@@ -36,8 +36,29 @@ Get a token without a browser:
     aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id <cognito_client_id> \
       --auth-parameters USERNAME=demo@example.com,PASSWORD='Demo1234!'
 
+## CI credentials
+
+The deploy job in `.github/workflows/ci.yml` signs in to AWS with the access key of the IAM user `events-ci`
+(`cicd.tf`), stored as the repository secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. OIDC would avoid
+storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the ECR
+repository and run `ssm:SendCommand` on the host.
+
+The key is created by hand, once, so the secret never reaches the Terraform state or the terminal. From the
+repository directory, with `aws` and `gh` logged in:
+
+    read -r ID SECRET < <(aws iam create-access-key --user-name events-ci \
+      --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
+    printf %s "$ID" | gh secret set AWS_ACCESS_KEY_ID
+    printf %s "$SECRET" | gh secret set AWS_SECRET_ACCESS_KEY
+    unset ID SECRET
+
+To rotate it (a user has at most two keys): run the commands above, check that a deploy works, then delete the
+old key with `aws iam list-access-keys --user-name events-ci` and
+`aws iam delete-access-key --user-name events-ci --access-key-id <old-key-id>`.
+
 ## Teardown
 
-The pool is kept between sessions: a new pool changes the issuer and the `sub` of every user, which orphans the
-profiles in the database. A plain `terraform destroy` fails on purpose (`prevent_destroy`). Use
-`infra/teardown.sh`, which destroys everything except Cognito.
+The pool and the CI user are kept between sessions. A new pool changes the issuer and the `sub` of every user, which
+orphans the profiles in the database; destroying the user would kill the key stored in GitHub. A plain
+`terraform destroy` fails on purpose (`prevent_destroy`). Use `infra/teardown.sh`, which destroys everything except
+Cognito and the CI user.
