@@ -59,7 +59,6 @@ jobs:
       group: deploy
       cancel-in-progress: false
     permissions:
-      id-token: write # lets the job ask GitHub for the OIDC token the AWS role trusts
       contents: read
     env:
       AWS_REGION: eu-north-1
@@ -67,10 +66,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Assume the deploy role
+      # The key of the IAM user events-ci (infra/cicd.tf). OIDC would avoid a stored key, but the organization SCP
+      # denies creating the OIDC provider; see infra/README.md for how the key is created and rotated.
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Log in to ECR
