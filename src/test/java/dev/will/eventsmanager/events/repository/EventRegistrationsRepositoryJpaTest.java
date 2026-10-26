@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.repository;
 
+import dev.will.eventsmanager.SharedPostgres;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
@@ -12,7 +13,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,17 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class EventRegistrationsRepositoryJpaTest {
 
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
-
-    static {
-        postgres.start();
-    }
-
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        SharedPostgres.register(registry);
     }
 
     private static final String ANA = "ana";

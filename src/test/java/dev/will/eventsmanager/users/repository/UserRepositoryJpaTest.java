@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.users.repository;
 
+import dev.will.eventsmanager.SharedPostgres;
 import dev.will.eventsmanager.TestFixtures;
 import dev.will.eventsmanager.users.entity.User;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +11,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.assertj.core.api.BDDAssertions.thenThrownBy;
@@ -19,17 +19,9 @@ import static org.assertj.core.api.BDDAssertions.thenThrownBy;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class UserRepositoryJpaTest {
 
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
-
-    static {
-        postgres.start();
-    }
-
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        SharedPostgres.register(registry);
     }
 
     @Autowired
