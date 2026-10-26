@@ -1,10 +1,12 @@
 package dev.will.eventsmanager.events.repository;
 
+import dev.will.eventsmanager.SharedPostgres;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
 import org.hibernate.Hibernate;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -16,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,17 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class EventRepositoryJpaTest {
 
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
-
-    static {
-        postgres.start();
-    }
-
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        SharedPostgres.register(registry);
     }
 
     private static final Pageable PAGEABLE = PageRequest.of(0, 20, Sort.by("schedule"));
@@ -48,6 +41,13 @@ class EventRepositoryJpaTest {
 
     @Autowired
     TestEntityManager em;
+
+    // The seeder commits its events in the integration tests, and the database is shared: hide them in this
+    // transaction, which rolls back.
+    @BeforeEach
+    void clearSeededEvents() {
+        eventRepository.deleteAll();
+    }
 
     @Test
     void shouldFilterByNameIgnoringCase() {
