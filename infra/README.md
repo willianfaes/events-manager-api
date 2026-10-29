@@ -83,6 +83,49 @@ answers for it. The zone is created once and the registrar is pointed to it once
    ACM checks a CNAME in the zone, so this step only finishes after step 3 has propagated. Run before that, it waits
    and then fails with a timeout; running it again is safe.
 
+## Deploy
+
+One EC2 host runs the API, Postgres and Redis with `docker-compose.prod.yml`. The pipeline publishes the image to ECR
+and runs `deploy/deploy.sh` on the host through SSM: there is no SSH and the host never clones the repository.
+
+First time, in this order (from this directory, in WSL):
+
+1. **Parameters.** `deploy.sh` reads everything under `/events-manager/prod/` from Parameter Store and writes one
+   `NAME=value` line per parameter into the host's `.env`. They are created by hand, so no secret reaches the
+   Terraform state, and they survive the teardown. The names are the variables `docker-compose.prod.yml` expects:
+
+       aws ssm put-parameter --name /events-manager/prod/DB_NAME --type String --value events_manager_db
+       aws ssm put-parameter --name /events-manager/prod/DB_USER --type String --value events_manager_app
+       aws ssm put-parameter --name /events-manager/prod/DB_PASSWORD --type SecureString --value "$(openssl rand -hex 16)"
+       aws ssm put-parameter --name /events-manager/prod/COGNITO_ISSUER_URI --type String --value "$(terraform output -raw cognito_issuer_uri)"
+       aws ssm put-parameter --name /events-manager/prod/COGNITO_HOSTED_UI_URL --type String --value "$(terraform output -raw cognito_hosted_ui_url)"
+       aws ssm put-parameter --name /events-manager/prod/COGNITO_CLIENT_ID --type String --value "$(terraform output -raw cognito_client_id)"
+
+   The password is hexadecimal on purpose: the `.env` has no quotes, so a `$` or a quote in it would break the
+   compose file. Add `--overwrite` to change a value.
+2. **Stack.** `terraform apply` creates the host, the load balancer, the listeners and the `events` record. From here
+   on it costs money by the hour. The host needs a few minutes to run its first-boot script and register in SSM; it is
+   ready when this lists it as `Online`:
+
+       aws ssm describe-instance-information --query 'InstanceInformationList[].[InstanceId,PingStatus]' --output text
+3. **Pipeline.** The deploy job only runs when the repository variable is `true`, and the workflow only runs on a push
+   or a pull request, so turn the variable on and re-run the last run on `main`:
+
+       gh variable set DEPLOY_ENABLED --body true
+       gh run list --branch main --limit 1
+       gh run rerun <run-id>
+4. **Check.** `terraform output api_url` prints the address. On the host (the command cannot contain double quotes):
+
+       ../deploy/ssm-run.sh "docker compose -f /opt/events-manager/docker-compose.prod.yml ps"
+       ../deploy/ssm-run.sh "docker compose -f /opt/events-manager/docker-compose.prod.yml logs --tail 100 events-manager"
+
+   In the browser: `http://` redirects to `https://`, the certificate is valid, Swagger UI opens, and the sign-up on
+   the hosted page comes back to the Swagger UI of the domain.
+
+To switch it off, run `./teardown.sh` and `gh variable set DEPLOY_ENABLED --body false`; otherwise every merge to
+`main` fails its deploy job. The database lives on the host, so it is created again (and the example events seeded
+again) the next time; the Cognito users stay, but their profiles are gone until they call `POST /users/me`.
+
 ## Teardown
 
 The pool, the CI user and the domain identity (the hosted zone, the ACM certificate and its validation record) are
