@@ -44,6 +44,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// Who may call these routes (401 without a token) is tested once, for every route, in SecurityAccessRulesWebSliceTest;
+// the tests here assume a signed-in user and cover what each route does.
 @WebMvcTest(UserController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class UserControllerWebSliceTest {
@@ -256,14 +258,5 @@ class UserControllerWebSliceTest {
         mockMvc.perform(get("/users/me").with(authenticatedUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
-    }
-
-    @Test
-    @DisplayName("GET /users/me/registrations - should return 401 when no token is provided")
-    void getUserRegisteredEvents_should_return_unauthorized_when_no_token() throws Exception {
-        mockMvc.perform(get("/users/me/registrations"))
-                .andExpect(status().isUnauthorized());
-
-        then(userService).shouldHaveNoInteractions();
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -105,6 +106,17 @@ class SecurityAccessRulesWebSliceTest {
                 .andReturn().getResponse().getStatus();
 
         then(status).isNotIn(401, 403);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("protected routes - should answer 401 in JSON when the token is rejected (expired, other issuer, bad signature)")
+    @ValueSource(strings = {"/events", "/users/me", "/admin/events/1/registrations"})
+    void protectedRoute_withRejectedToken_returnsUnauthorized(String path) throws Exception {
+        given(jwtDecoder.decode("expired-token")).willThrow(new BadJwtException("Jwt expired"));
+
+        mockMvc.perform(get(path).header("Authorization", "Bearer expired-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
     }
 
     @ParameterizedTest(name = "GET {0}")

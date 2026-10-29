@@ -35,6 +35,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+// Who may call these routes (401 without a token) is tested once, for every route, in SecurityAccessRulesWebSliceTest;
+// the tests here assume a signed-in user and cover what each route does.
 @WebMvcTest(EventController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class EventControllerWebSliceTest {
@@ -96,17 +98,6 @@ class EventControllerWebSliceTest {
                 .andExpect(status().isNotFound());
 
         then(eventService).should().registerUserForEvent(USER_SUB, eventId);
-    }
-
-    @Test
-    @DisplayName("POST /events/{eventId}/registrations - should return 401 Unauthorized when request is unauthenticated")
-    void registerForEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
-        Long eventId = 10L;
-
-        mockMvc.perform(post("/events/{eventId}/registrations", eventId))
-                .andExpect(status().isUnauthorized());
-
-        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -173,15 +164,6 @@ class EventControllerWebSliceTest {
         mockMvc.perform(get("/events/{eventId}/registrations/me", eventId)
                         .with(authenticatedUser()))
                 .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("DELETE /events/{eventId}/registrations - should return 401 Unauthorized when request is unauthenticated")
-    void unregisterFromEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
-        mockMvc.perform(delete("/events/{eventId}/registrations", 10L))
-                .andExpect(status().isUnauthorized());
-
-        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test

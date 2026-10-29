@@ -43,6 +43,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+// Who may call these routes (401 without a token, 403 without the ADMIN role) is tested once, for every route, in
+// SecurityAccessRulesWebSliceTest; the tests here assume an ADMIN and cover what each route does.
 @WebMvcTest(AdminEventController.class)
 @Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
 class AdminEventControllerWebSliceTest {
@@ -134,33 +136,6 @@ class AdminEventControllerWebSliceTest {
     }
 
     @Test
-    @DisplayName("POST /admin/events - should return 401 Unauthorized when request is unauthenticated")
-    void createEvent_should_returnUnauthorized_when_noAuthentication() throws Exception {
-        EventCreateRequest request = validRequest().build();
-
-        mockMvc.perform(post("/admin/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
-
-        then(eventService).shouldHaveNoInteractions();
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("POST /admin/events - should return 403 Forbidden when user has insufficient role")
-    void createEvent_should_returnForbidden_when_roleIsUser() throws Exception {
-        EventCreateRequest request = validRequest().build();
-
-        mockMvc.perform(post("/admin/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
-
-        then(eventService).shouldHaveNoInteractions();
-    }
-
-    @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("POST /admin/events - should return 400 Bad Request when category is missing")
     void createEvent_should_returnBadRequest_when_categoryIsNull() throws Exception {
@@ -236,16 +211,6 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isOk());
 
         then(eventService).should().findEventAttendees(eventId, defaultPageable);
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("GET /admin/events/{eventId}/registrations - should return 403 Forbidden when user has insufficient role")
-    void getEventAttendees_should_returnForbidden_when_roleIsUser() throws Exception {
-        mockMvc.perform(get("/admin/events/{eventId}/registrations", 10L))
-                .andExpect(status().isForbidden());
-
-        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -343,20 +308,6 @@ class AdminEventControllerWebSliceTest {
     }
 
     @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("PUT /admin/events/{eventId} - should return 403 Forbidden when user has insufficient role")
-    void updateEvent_should_returnForbidden_when_roleIsUser() throws Exception {
-        EventCreateRequest request = validRequest().build();
-
-        mockMvc.perform(put("/admin/events/{eventId}", 7L)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
-
-        then(eventService).shouldHaveNoInteractions();
-    }
-
-    @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("DELETE /admin/events/{eventId} - should return 204 No Content when ADMIN deletes an event")
     void deleteEvent_should_returnNoContent_when_adminDeletesEvent() throws Exception {
@@ -390,16 +341,6 @@ class AdminEventControllerWebSliceTest {
 
         mockMvc.perform(delete("/admin/events/{eventId}", eventId))
                 .andExpect(status().isConflict());
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    @DisplayName("DELETE /admin/events/{eventId} - should return 403 Forbidden when user has insufficient role")
-    void deleteEvent_should_returnForbidden_when_roleIsUser() throws Exception {
-        mockMvc.perform(delete("/admin/events/{eventId}", 7L))
-                .andExpect(status().isForbidden());
-
-        then(eventService).shouldHaveNoInteractions();
     }
 
     private EventCreateRequest.EventCreateRequestBuilder validRequest() {
