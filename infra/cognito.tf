@@ -2,13 +2,15 @@
 resource "aws_cognito_user_pool" "main" {
   name = var.name
 
-  # Log in with the e-mail address; the e-mail is trusted without a confirmation message (users are created by an admin).
+  # Log in with the e-mail address. A visitor who signs up gets a code by e-mail and must type it to confirm the address;
+  # users created by an admin are marked as verified in their own resource below.
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
-  # No public sign-up: only an admin creates users, so the pool never sends mail on its own.
+  # Anyone can sign up on the hosted page. A new user has no group, so the API lets them in but not into /admin.
+  # The default Cognito sender is limited to 50 e-mails a day (SES would lift it).
   admin_create_user_config {
-    allow_admin_create_user_only = true
+    allow_admin_create_user_only = false
   }
 
   password_policy {

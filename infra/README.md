@@ -18,7 +18,9 @@ every previous state. Then `terraform init` (or `terraform init -migrate-state` 
 ## Cognito
 
 `cognito.tf` creates the user pool, the hosted login page, the Swagger app client and the `USER` and `ADMIN`
-groups. Users are created by an admin (no public sign-up).
+groups. Anyone can sign up on the hosted page: Cognito e-mails a code (check the spam folder; the default sender is
+limited to 50 e-mails a day) and the new user has no group, so they can call the API but not `/admin`. The users below
+are created by an admin and marked as verified.
 
 - Demo user: `demo@example.com` / `Demo1234!` (group `USER`). The password is public on purpose.
 - Demo admin: `admin-demo@example.com`, only created when `demo_admin_password` is set in `terraform.tfvars`.
