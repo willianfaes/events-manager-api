@@ -71,6 +71,13 @@ answers for it. The zone is created once and the registrar is pointed to it once
 
 3. At the registrar, switch the domain to custom name servers and enter those four. A `.dev` change can take from a
    few hours up to 48 hours to reach everyone.
+4. Once the name servers answer (`dig NS <domain_name>` lists the four), create the certificate for
+   `events.<domain_name>`:
+
+       terraform apply -target=aws_acm_certificate_validation.api
+
+   ACM checks a CNAME in the zone, so this step only finishes after step 3 has propagated. Run before that, it waits
+   and then fails with a timeout; running it again is safe.
 
 ## Teardown
 
