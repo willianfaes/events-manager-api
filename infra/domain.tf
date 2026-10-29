@@ -40,6 +40,19 @@ resource "aws_route53_record" "cert_validation" {
   allow_overwrite = true
 }
 
+# An alias (not a CNAME) points the name at the ALB: it is free to query and follows the ALB when teardown recreates it.
+resource "aws_route53_record" "api" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = local.api_domain
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = true
+  }
+}
+
 # Waits until ACM sees the CNAME, so it only finishes once the registrar points the domain to the zone's name servers.
 resource "aws_acm_certificate_validation" "api" {
   certificate_arn         = aws_acm_certificate.api.arn
