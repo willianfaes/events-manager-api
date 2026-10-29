@@ -29,6 +29,7 @@ import static dev.will.eventsmanager.TestFixtures.validUser;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -130,6 +131,23 @@ class EventControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(registrationId))
                 .andExpect(jsonPath("$.eventId").value(event.getId()))
+                .andExpect(header().string("Location", endsWith("/events/" + event.getId() + "/registrations/me")));
+    }
+
+    @Test
+    @DisplayName("POST /events/{eventId}/registrations - should build the Location with the scheme forwarded by the load balancer")
+    void registerForEvent_behindLoadBalancer_returnsHttpsLocation() throws Exception {
+        userRepository.save(validUser());
+        Event event = saveEvent();
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(post("/events/{eventId}/registrations", event.getId())
+                        .header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Port", "443")
+                        .with(authenticatedUser()))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", startsWith("https://")))
                 .andExpect(header().string("Location", endsWith("/events/" + event.getId() + "/registrations/me")));
     }
 
