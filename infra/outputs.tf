@@ -13,6 +13,11 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
+output "name_servers" {
+  description = "Name servers of the hosted zone; the registrar must point the domain to them"
+  value       = aws_route53_zone.main.name_servers
+}
+
 output "cognito_issuer_uri" {
   description = "Value of the API's issuer-uri: it validates the tokens against this pool"
   value       = "https://${aws_cognito_user_pool.main.endpoint}"

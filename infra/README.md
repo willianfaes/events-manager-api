@@ -1,6 +1,6 @@
 # infra
 
-Terraform for the AWS host, ECR, IAM and Cognito. Run it from WSL, in this directory.
+Terraform for the AWS host, ECR, IAM, Cognito and the DNS zone. Run it from WSL, in this directory.
 
 ## Remote state
 
@@ -56,9 +56,26 @@ To rotate it (a user has at most two keys): run the commands above, check that a
 old key with `aws iam list-access-keys --user-name events-ci` and
 `aws iam delete-access-key --user-name events-ci --access-key-id <old-key-id>`.
 
+## Domain
+
+The domain (`domain_name` in `variables.tf`) is bought outside AWS; `domain.tf` creates the Route 53 hosted zone that
+answers for it. The zone is created once and the registrar is pointed to it once:
+
+1. Create only the zone (a plain `apply` also brings up the EC2 stack):
+
+       terraform apply -target=aws_route53_zone.main
+
+2. Read the four name servers it was given:
+
+       terraform output name_servers
+
+3. At the registrar, switch the domain to custom name servers and enter those four. A `.dev` change can take from a
+   few hours up to 48 hours to reach everyone.
+
 ## Teardown
 
-The pool and the CI user are kept between sessions. A new pool changes the issuer and the `sub` of every user, which
-orphans the profiles in the database; destroying the user would kill the key stored in GitHub. A plain
-`terraform destroy` fails on purpose (`prevent_destroy`). Use `infra/teardown.sh`, which destroys everything except
-Cognito and the CI user.
+The pool, the CI user and the domain identity (the hosted zone, the ACM certificate and its validation record) are
+kept between sessions. A new pool changes the issuer and the `sub` of every user, which orphans the profiles in the
+database; destroying the user would kill the key stored in GitHub; a new zone gets new name servers, which would have
+to be set again at the registrar. A plain `terraform destroy` fails on purpose (`prevent_destroy`). Use
+`infra/teardown.sh`, which destroys everything except those.
