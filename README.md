@@ -1,13 +1,10 @@
 # Events Manager API
 An API to manage local events and user registrations based on location relevance.
 
-See ROADMAP.md for the full data model, endpoint list, and future plans.
-
 ## Core Features (MVP)
 - User authentication with AWS Cognito (OIDC tokens)
 - Event CRUD
 - Event categories (party, sport, concert, cultural)
-- User interest selection across multiple categories
 - Event Registration (Join/Leave events)
 
 ## Running with Docker
