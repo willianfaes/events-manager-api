@@ -44,8 +44,11 @@ resource "aws_cognito_user_pool_client" "swagger" {
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
   supported_identity_providers         = ["COGNITO"]
 
-  # Cognito only accepts HTTPS callbacks, except localhost: the deployed Swagger waits for a domain (HTTPS).
-  callback_urls = ["http://localhost:8080/swagger-ui/oauth2-redirect.html"]
+  # Cognito only accepts HTTPS callbacks, except localhost.
+  callback_urls = [
+    "http://localhost:8080/swagger-ui/oauth2-redirect.html",
+    "https://${local.api_domain}/swagger-ui/oauth2-redirect.html",
+  ]
 
   # USER_PASSWORD_AUTH lets the AWS CLI get a token without a browser (to check the groups claim).
   explicit_auth_flows           = ["ALLOW_USER_SRP_AUTH", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]

@@ -9,8 +9,18 @@ output "instance_id" {
 }
 
 output "alb_dns_name" {
-  description = "Public address of the load balancer (HTTP only until there is a domain)"
+  description = "Address of the load balancer; its certificate is for the domain, so use api_url instead"
   value       = aws_lb.main.dns_name
+}
+
+output "api_url" {
+  description = "Public address of the API"
+  value       = "https://${local.api_domain}"
+}
+
+output "name_servers" {
+  description = "Name servers of the hosted zone; the registrar must point the domain to them"
+  value       = aws_route53_zone.main.name_servers
 }
 
 output "cognito_issuer_uri" {

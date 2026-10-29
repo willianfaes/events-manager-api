@@ -19,12 +19,20 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# HTTP only for now: HTTPS needs a domain and an ACM certificate, then a 443 listener goes here.
+# Port 80 only answers with a redirect to 443.
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
   security_group_id = aws_security_group.alb.id
   ip_protocol       = "tcp"
   from_port         = 80
   to_port           = 80
+  cidr_ipv4         = "0.0.0.0/0"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_https" {
+  security_group_id = aws_security_group.alb.id
+  ip_protocol       = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }
 
@@ -68,13 +76,31 @@ resource "aws_lb_target_group_attachment" "app" {
   port             = 8080
 }
 
-resource "aws_lb_listener" "http" {
+resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.main.arn
-  port              = 80
-  protocol          = "HTTP" # NOSONAR: no domain yet, so no certificate; the HTTPS listener comes with it
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = aws_acm_certificate_validation.api.certificate_arn
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
   }
 }

@@ -10,6 +10,12 @@ variable "name" {
   default     = "events-manager"
 }
 
+variable "domain_name" {
+  description = "Domain bought outside AWS; its hosted zone and certificate survive the teardown. The API is served at events.<domain_name>"
+  type        = string
+  default     = "williansoares.dev"
+}
+
 variable "instance_type" {
   description = "EC2 instance type; the app, Postgres and Redis share one host, so a micro (1 GB) is only good for short tests"
   type        = string
