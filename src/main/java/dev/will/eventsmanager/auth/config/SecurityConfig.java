@@ -33,6 +33,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**"
                         ).permitAll()
                         .requestMatchers(EndpointRequest.to("health", "prometheus")).permitAll()
+                        // Checked by URL, before the body is read: a route added under /admin is closed to users
+                        // even if its controller forgets @PreAuthorize.
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .oauth2ResourceServer(oauth2 -> oauth2
