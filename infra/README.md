@@ -28,8 +28,10 @@ groups. Users are created by an admin (no public sign-up).
   (a plain `apply` also brings up the EC2 stack):
 
       terraform apply -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test
-- The client only accepts the callback `http://localhost:8080/swagger-ui/oauth2-redirect.html`: Cognito requires
-  HTTPS for any other host, so login from the deployed Swagger waits for a domain.
+- The client accepts two callbacks: `http://localhost:8080/swagger-ui/oauth2-redirect.html` and
+  `https://events.<domain_name>/swagger-ui/oauth2-redirect.html` (Cognito requires HTTPS for any host but localhost).
+  The pool is kept between sessions, so a change to the list needs
+  `terraform apply -target=aws_cognito_user_pool_client.swagger`.
 
 Get a token without a browser:
 
