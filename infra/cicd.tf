@@ -30,6 +30,7 @@ resource "aws_iam_user_policy" "ci" {
         Effect = "Allow"
         Action = [
           "ecr:DescribeImages",
+          "ecr:BatchGetImage", # docker push reads the manifest (HEAD) around the upload
           "ecr:BatchCheckLayerAvailability",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
