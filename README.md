@@ -1,190 +1,89 @@
 # Events Manager API
-An API to manage local events and user registrations based on location relevance.
 
-## Core Features (MVP)
-- User authentication with AWS Cognito (OIDC tokens)
-- Event CRUD
-- Event categories (party, sport, concert, cultural)
-- Event Registration (Join/Leave events)
+A Spring Boot API for event sign-ups. Admins publish events with a fixed number of spots; users sign in through AWS Cognito, find events near them and register, and the API keeps every event within its capacity even when many people register in the same second.
 
-## Running with Docker
+*My intention with this project is to practise what a backend needs in production, not only what makes it run: tests that prove the rules, numbers I can reproduce, decisions I can explain, and a real deploy I operate myself.*
 
-This project ships with a multi-stage `Dockerfile` and a `docker-compose.yml` that spins up both the app and its PostgreSQL database.
+**Live demo:** [Swagger UI](https://events.williansoares.dev/swagger-ui.html). Click **Authorize** and sign in with `demo@example.com` / `Demo1234!` (a public demo account with no admin rights), or create your own account on the login page.
 
-### Commit Conventions
+[Live demo](https://events.williansoares.dev/swagger-ui.html) · [Project board](https://github.com/users/willianfaes/projects/1) · [Architecture](ARCHITECTURE.md) · [Run locally](RUNNING.md)
 
-This repository follows [Conventional Commits](https://www.conventionalcommits.org/) to keep commit history consistent and readable.
+<!-- Hero GIF: Swagger login, register (201), then 409 when the event is full. Recorded last, with the stack live. -->
 
-**Format:** `type(scope): short summary`
+## Architecture
 
-**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`
-**Scope:** optional and free-form (lowercase letters, digits, `.`, `_`, `/`, `-`), usually the feature or area touched, such as `events`, `users`, `infra` or `build`. The summary after `: ` has 1 to 72 characters.
+![Architecture of Events Manager API on AWS: Route 53 and an Application Load Balancer in front of one EC2 host running the API, PostgreSQL, Redis, Kafka and the notification service in Docker Compose, with Cognito for sign-in and GitHub Actions deploying through ECR and Systems Manager](docs/diagrams/architecture.drawio.svg)
 
-**Examples:**
-```
-feat(events): add name and date range filter to GET /events
-fix(users): add id tie-breaker to RegistrationSort
-test(infra): share one Postgres container across the tests
-docs: clean up the repository root
-```
+Everything runs on one EC2 host on purpose, to keep the demo inside the free plan; [Why one EC2](ARCHITECTURE.md#why-one-ec2) says what that costs and what would change first. The whole AWS setup is Terraform in `infra/`, so after a teardown the stack comes back with `terraform apply` and one pipeline run. How each part works is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
-**Setup (run once per clone):**
+## How it was built
 
-```bash
-git config --local core.hooksPath .githooks
-git update-index --chmod=+x .githooks/commit-msg
-```
+- **Planned on a board.** The work was planned as issues on the [project board](https://github.com/users/willianfaes/projects/1) and delivered as pull requests: 85 issues done, 12 closed as not planned and 111 pull requests merged (November 2026).
+- **The rule before the code.** An issue states its rule with Given/When/Then cases, and the tests are written first. For example, [issue #94](https://github.com/willianfaes/events-manager-api/issues/94) has the capacity rule and its cases, concurrency included; [PR #104](https://github.com/willianfaes/events-manager-api/pull/104) closes it with the tests, the reason for the lock and a green build.
+- **A readable history.** Conventional Commits, checked by a `commit-msg` hook, and squash merges, so each pull request is one commit on `main`.
+- **Every change through CI.** The whole test suite, containers included, runs on every pull request in about two minutes. A merge to `main` also runs SonarQube Cloud and deploys to AWS.
+- **Checking the tests themselves.** [PIT](https://pitest.org) changes the code (flips a condition, removes a call) and reruns the unit tests; a change that no test catches points to a weak test. It runs on demand, not in CI, and one of its findings is the second story in [What went wrong](#what-went-wrong-along-the-way).
+- **Changing course in steps.** The API had its own login; the move to Cognito took three pull requests ([#157](https://github.com/willianfaes/events-manager-api/pull/157), [#158](https://github.com/willianfaes/events-manager-api/pull/158), [#159](https://github.com/willianfaes/events-manager-api/pull/159)), each one small enough to deploy on its own.
 
-- The `.githooks/commit-msg` hook validates the subject line against the convention above and rejects non-conforming commits. It skips merge, revert, `fixup!`/`squash!`, and initial commits automatically.
-- This setup is local to each clone — Git doesn't sync hooks or config automatically, so anyone working on this repo needs to run the commands above once after cloning.
-- Enforcement is local-only (bypassable with `git commit --no-verify`); a CI check on PR titles/commits is a natural next step if stricter enforcement is needed.
+## What it does
 
-## Code quality
+| Feature                                                                      | How it is proven                                                                                                    |
+|------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Registration never exceeds the capacity of the event                         | A concurrency integration test, and a [k6 race](RUNNING.md#load-test-k6): 200 users, 50 spots, exactly 50 `201` and 150 `409` |
+| Sign-in with AWS Cognito (OIDC), roles taken from Cognito groups             | One test table with a row per route for the `401` and `403` rules                                                   |
+| Event listing with filters, sorting and pagination, cached in Redis for 30 s | Integration tests, including one that pauses Redis and checks the fallback to PostgreSQL                            |
+| Filter by distance from the address in the profile (`maxDistanceKm`)         | Tests on a real PostgreSQL, including one that checks the database and Java draw the line at the same distance      |
+| External geocoding call with timeouts, cache, retry and a circuit breaker     | Tests with a fake provider that fails on purpose, including one that proves an open circuit makes no call           |
+| Registrations and cancellations published to Kafka through an outbox         | An end-to-end test from the API to a real Kafka broker, and a test that a failed send leaves the messages pending |
+| Metrics, dashboard and alert (Prometheus and Grafana)                        | Dashboard provisioned from the repository                                                                           |
+| Deploy to AWS from every merge to `main`                                     | CI/CD workflow, with the image tagged by the commit SHA                                                             |
 
-This project uses [SonarQube](https://www.sonarsource.com/products/sonarqube/) (Community Edition, self-hosted) for static code analysis.
+<!-- Numbers, one line: k6 race 50/150, browse p95 with and without the cache, coverage. Values pending (formal k6 run). Sonar badges when the repository is public. -->
 
-### Running SonarQube locally
+## What went wrong along the way
 
-Start the SonarQube server (runs under the `tools` profile, so it won't start with a regular `docker compose up -d` or `docker compose up -d db`):
+- **Adding a repository test broke another one.** Each JPA test class built its own Spring context and connection pool until PostgreSQL ran out of connections. They now share one, and an ArchUnit rule fails the build if a new test class does not.
+- **Tests passed without checking the result.** PIT showed that a registration could be saved without its user and event while every test stayed green. The tests now check what is saved and what is returned.
 
-```bash
-docker compose --profile tools up -d sonarqube
-```
+Each one with its root cause, fix and guard is in [ARCHITECTURE.md](ARCHITECTURE.md#what-went-wrong-along-the-way).
 
-First boot takes a minute or two. Once ready, open [http://localhost:9000](http://localhost:9000) and log in (default `admin` / `admin`, you'll be prompted to change it on first login).
-
-Create a project (key: `events-manager-api`) and generate a **Project Analysis Token** under your account's Security settings. Tokens are shown once — copy it immediately.
-
-### Running an analysis
-
-Set the token for your session, then run the build with the `sonar` goal:
-
-```powershell
-$env:SONAR_TOKEN = "your-token-here"
-.\mvnw.cmd clean verify sonar:sonar -Dsonar.token=$env:SONAR_TOKEN
-```
-
-`sonar.projectKey` and `sonar.host.url` are already configured in `pom.xml`, so no need to pass them on the command line.
-
-Results are available at [http://localhost:9000/dashboard?id=events-manager-api](http://localhost:9000/dashboard?id=events-manager-api).
-
-> ⚠️ The token is a credential — never commit it or share it. Regenerate it if it's ever exposed.
-
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-
-### Setup
-
-1. Copy the example environment and properties files, and adjust values as needed:
-```bash
-   cp .env.example .env
-   cp src/main/resources/application-local.properties.example src/main/resources/application-local.properties
-```
-> ⚠️ Replace `DB_PASSWORD` in `.env` with a real value, and set the **same** password in `application-local.properties`. Docker Compose reads `.env` when creating the Postgres container; Spring Boot (when run outside Docker) reads `application-local.properties` and has no visibility into `.env`. These two must match, or you'll hit an authentication error. `.env` also needs the Cognito values (see [Logging in](#logging-in-aws-cognito)) and, for the monitoring profile, `GRAFANA_PASSWORD`.
-
-2. Build and start the stack:
-```bash
-   docker compose up -d --build
-```
-This builds the app image (Maven build → `eclipse-temurin:21-jre-alpine` runtime) and starts both the `db` and `events-manager` containers. The app waits for the database to report healthy before starting.
-
-3. The API will be available at `http://localhost:8080`. Check that the app is ready with `docker compose ps`: `events-manager` shows `healthy` once `/actuator/health` answers. The health and metrics endpoints run on the management port (8081), which is not published to the host.
-
-### Useful commands
-
-| Command | Description |
-|---|---|
-| `docker compose up -d` | Start the stack (uses existing images if already built) |
-| `docker compose up -d --build` | Rebuild images and start (use after code changes) |
-| `docker compose down` | Stop and remove containers |
-| `docker compose logs -f events-manager` | Follow the app's logs |
-| `docker compose up -d db` | Start only the database (useful for local development in an IDE) |
-| `docker compose --profile monitoring up -d --build` | Start the stack with Prometheus and Grafana |
-
-### Monitoring (Prometheus and Grafana)
-
-The `monitoring` profile adds Prometheus and Grafana next to the app:
+## Quickstart
 
 ```bash
-docker compose --profile monitoring up -d --build
+cp .env.example .env              # works as it is
+docker compose up -d --build      # API, PostgreSQL, Redis and Kafka, with 8 sample events
+# then open http://localhost:8080/swagger-ui.html and log in as demo@example.com / Demo1234!
 ```
 
-| Service | URL | Notes |
-|---|---|---|
-| API and Swagger | `http://localhost:8080/swagger-ui.html` | send requests here |
-| Grafana | `http://localhost:3000` | user `admin`, password from `GRAFANA_PASSWORD` in `.env` |
-| Prometheus | `http://localhost:9090` | targets, queries and the alert state |
+[RUNNING.md](RUNNING.md) covers running from the IDE, the example requests, the tests, the monitoring and the load test.
 
-The **Events Manager** dashboard is provisioned from `observability/grafana/dashboards/` and shows request rate and 5xx ratio, p50 and p95 latency per route, JVM heap, GC pause time and the Hikari pool. The `HighP95Latency` rule (p95 above 500 ms for 2 minutes) is in `observability/prometheus/alerts.yml`; it only changes state, nothing is notified.
+## Known gaps
 
-- Prometheus scrapes the `events-manager` **container** (port 8081, internal to the compose network). An app started from the IDE does not show up in Grafana.
-- The Grafana password is only applied when its volume is created; to change it later, remove the `grafana_data` volume.
-- After editing the dashboard JSON, restart the `grafana` container so it reloads the file.
+- **One host, no backups.** Destroying the EC2 host erases the data; the first fix is a managed database.
+- **Kafka is one broker.** It is not fault tolerant.
+- **The listing can be up to 30 seconds stale.** Registering stays the source of truth and answers `409` when the event is full.
 
-### Load test (k6)
+The full list, each gap with its fix, is in [ARCHITECTURE.md](ARCHITECTURE.md#known-gaps).
 
-A [k6](https://k6.io) script in `load-test/k6/script.js` exercises two things:
+## Stack
 
-- **Registration race:** 200 distinct users try to register for the same event, which has 50 spots, at the same time. The thresholds require exactly 50 `201` and 150 `409`, so the run fails if a spot is oversold.
-- **Browsing:** `GET /events` (random page) and `GET /events/{id}` at a constant 50 iterations per second for 2 minutes. The thresholds are an error rate under 1% and a p95 under 500 ms.
+| Area                   | Technology                                                                                                        |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Language and framework | Java 21, Spring Boot 3.5 (Web, Data JPA, Validation, Security, Actuator)                                          |
+| Authentication         | Amazon Cognito (OIDC), Spring Security OAuth2 resource server                                                     |
+| Database               | PostgreSQL 16, schema versioned with Flyway, Hibernate with `ddl-auto=validate`                                   |
+| Cache                  | Redis 7.4 through Spring Cache, with a fallback to PostgreSQL                                                     |
+| External API           | Nominatim (OpenStreetMap) through `RestClient`, protected with Resilience4j                                       |
+| Messaging              | Apache Kafka 3.9 (KRaft, one broker) through Spring for Apache Kafka, with a transactional outbox                 |
+| Mapping and API docs   | MapStruct, Lombok, springdoc-openapi (Swagger UI)                                                                 |
+| Observability          | Micrometer, Prometheus and Grafana, with a provisioned dashboard and one alert rule                               |
+| Tests                  | JUnit 5, Mockito, AssertJ, Spring Security Test, Testcontainers (PostgreSQL, Redis and Kafka), WireMock, ArchUnit |
+| Quality                | JaCoCo (coverage), PIT (mutation testing), SonarQube Cloud                                                        |
+| Load test              | k6, with its metrics pushed to Prometheus                                                                         |
+| Infrastructure as code | Terraform (`infra/`), state in S3                                                                                 |
+| Cloud                  | AWS: EC2, Application Load Balancer, Route 53, ACM, Cognito, ECR, Systems Manager, Parameter Store                 |
+| CI/CD                  | GitHub Actions, Docker multi-stage image                                                                          |
 
-The 200 users are real Cognito users: create them once with `load_test_password` in `infra/terraform.tfvars` and `terraform apply -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test` (see `infra/README.md`), and put the same password in `LOAD_TEST_PASSWORD` in `.env`, next to `COGNITO_ISSUER_URI` and `COGNITO_CLIENT_ID`. Before the test starts, k6 logs each one in through the Cognito API and creates its profile with `POST /users/me`, so the run needs internet access.
+## License
 
-The Docker database starts empty, so run the seed before each session: the first run creates the test events (1,000 events plus the 50-spot one), and later runs move them forward again, so the race event never falls in the past:
-
-```bash
-docker compose --profile monitoring up -d --build
-docker compose exec -T db psql -U <DB_USER> -d <DB_NAME> < load-test/seed.sql
-docker compose run --rm k6
-```
-
-On PowerShell, use `Get-Content load-test/seed.sql | docker compose exec -T db psql -U <DB_USER> -d <DB_NAME>` for the second line. The k6 metrics are pushed to Prometheus, so the **k6 (client)** panels of the Grafana dashboard show the client side next to the server side.
-
-#### Baseline, before any cache
-
-Fresh volumes, seed, one warm-up run (discarded) and three measured runs, on the final image (Java 21):
-
-| Browsing, 100 requests/s for 2 min | Median of 3 runs | Range |
-|---|---|---|
-| p50 | 5.2 ms | 5.17 – 5.21 ms |
-| p95 | 6.6 ms | 6.62 – 6.65 ms |
-| p99 | 10.0 ms | 9.93 – 10.53 ms |
-| Error rate | 0% (0 of 12,002) | — |
-
-The race gave 50 created and 150 rejected in every run, and the database held exactly 50 active registrations.
-
-**Environment:** Intel Core i5-7400 (4 cores), 16 GB RAM, Windows 10, Docker Desktop with 4 CPUs and 7.7 GB. The app, the database, Prometheus, Grafana and k6 all run on this one machine, so the load generator competes with the app.
-
-**What this is not:** a synthetic test on a small dataset (1,000 events) with the generator on the same host. The numbers are for comparing a change against this baseline (the cache, in #72), not a statement about how many users the API serves.
-
-### Local development without Docker for the app
-
-You can run the database in Docker while running the Spring Boot app directly from your IDE for faster iteration and debugging:
-
-```bash
-docker compose up -d db
-```
-
-Then run the app normally from IntelliJ (or `./mvnw spring-boot:run`) — the `local` Spring profile is active by default, reading your password from `application-local.properties` (see Setup step 1 above). No IDE-specific run configuration is needed.
-
-### Logging in (AWS Cognito)
-
-The API validates tokens issued by an AWS Cognito user pool (`infra/cognito.tf`) and never sees a password. It does not start without the issuer; the other two values only add the login button to Swagger UI.
-
-| Value | `application-local.properties` | `.env` (Docker) |
-|---|---|---|
-| Issuer (required) | `spring.security.oauth2.resourceserver.jwt.issuer-uri` | `COGNITO_ISSUER_URI` |
-| Hosted login page | `app.cognito.hosted-ui-url` | `COGNITO_HOSTED_UI_URL` |
-| Swagger client id | `springdoc.swagger-ui.oauth.client-id` | `COGNITO_CLIENT_ID` |
-
-The project's pool (public values, not secrets; `terraform output` in `infra/` prints the same):
-
-```
-issuer:    https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_3VrOILR4Y
-hosted UI: https://events-manager-164106395660.auth.eu-north-1.amazoncognito.com
-client id: v4gdb6t181545k46nd74lpi9t
-```
-
-In Swagger UI (`http://localhost:8080/swagger-ui.html`), click **Authorize** and, under `cognito`, leave `client_secret` empty, tick the scopes and log in as `demo@example.com` / `Demo1234!`, or use **Sign up** on the login page with your own e-mail (Cognito sends a confirmation code; check the spam folder). A new account has no profile yet: `GET /users/me` answers 404 until `POST /users/me` creates it. The demo user already has a profile in Milano (locally only when `app.demo.user-sub` is set, see `application-local.properties.example`), so try `GET /events?maxDistanceKm=50`: each event then shows its `distanceKm`. Or paste a token from the CLI command in `infra/README.md` under `bearerAuth`. The pool accepts two callbacks, `http://localhost:8080/swagger-ui/oauth2-redirect.html` and the one of the deployed domain, so the login button only works on those hosts.
-
-> If startup fails with `Error processing condition on ...jwtDecoderByIssuerUri`, the issuer is missing.
+[MIT](LICENSE)

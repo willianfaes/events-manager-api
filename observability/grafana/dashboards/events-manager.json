@@ -66,11 +66,11 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{uri!~\"/actuator.*\"}[1m])))",
+          "expr": "histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{uri!~\"/actuator.*|/swagger-ui.*|/v3/api-docs.*\"}[1m])))",
           "legendFormat": "{{uri}}"
         }
       ],
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "scaleDistribution": { "type": "log", "log": 10 } } }, "overrides": [] }
     },
     {
       "id": 5,
