@@ -42,7 +42,7 @@ Get a token without a browser:
 
 ## CI credentials
 
-The deploy job in `.github/workflows/ci.yml` signs in to AWS with the access key of the IAM user `events-ci`
+The deploy job in `.github/workflows/cicd.yml` signs in to AWS with the access key of the IAM user `events-ci`
 (`cicd.tf`), stored as the repository secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. OIDC would avoid
 storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the ECR
 repository and run `ssm:SendCommand` on the host.
