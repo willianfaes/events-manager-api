@@ -3,6 +3,7 @@ package dev.will.eventsmanager.users.service;
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
@@ -31,12 +32,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProfileMapper profileMapper;
 
-    public ProfileResponse createProfile(String externalId, CreateProfileRequest request) {
+    public ProfileResponse createProfile(String externalId, CreateProfileRequest request, Coordinates coordinates) {
         if (userRepository.existsByExternalId(externalId)) {
             throw new ProfileAlreadyExistsException();
         }
         User profile = profileMapper.toEntity(request);
         profile.setExternalId(externalId);
+        profile.getAddress().locateAt(coordinates);
         return profileMapper.toResponse(userRepository.save(profile));
     }
 

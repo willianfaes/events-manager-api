@@ -2,12 +2,14 @@ package dev.will.eventsmanager.users.service;
 
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.entity.User;
+import dev.will.eventsmanager.users.entity.UserAddress;
 import dev.will.eventsmanager.users.mapper.ProfileMapper;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -57,24 +59,25 @@ class UserServiceTest {
     @Test
     void createProfile_linksTheNewProfileToTheSub() {
         CreateProfileRequest request = profileRequest();
-        User profile = User.builder().name("Demo User").build();
+        User profile = User.builder().name("Demo User").address(UserAddress.builder().build()).build();
         ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
         given(userRepository.existsByExternalId(USER_SUB)).willReturn(false);
         given(profileMapper.toEntity(request)).willReturn(profile);
         given(userRepository.save(profile)).willReturn(profile);
         given(profileMapper.toResponse(profile)).willReturn(expected);
 
-        ProfileResponse result = userService.createProfile(USER_SUB, request);
+        ProfileResponse result = userService.createProfile(USER_SUB, request, new Coordinates(45.4716, 9.1889));
 
         assertThat(result).isEqualTo(expected);
         assertThat(profile.getExternalId()).isEqualTo(USER_SUB);
+        assertThat(profile.getAddress().getLatitude()).isEqualTo(45.4716);
     }
 
     @Test
     void createProfile_rejectsASecondProfileForTheSameSub() {
         given(userRepository.existsByExternalId(USER_SUB)).willReturn(true);
 
-        assertThatThrownBy(() -> userService.createProfile(USER_SUB, profileRequest()))
+        assertThatThrownBy(() -> userService.createProfile(USER_SUB, profileRequest(), null))
                 .isInstanceOf(ProfileAlreadyExistsException.class);
         then(userRepository).should(never()).save(any());
     }
