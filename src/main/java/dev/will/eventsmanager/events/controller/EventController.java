@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springdoc.core.annotations.ParameterObject;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,14 +42,22 @@ public class EventController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved events. "
             + "The listing is cached for 30 seconds and cleared when an event is created, updated or deleted. "
             + "remainingSpots is a snapshot and may be up to 30 seconds stale; registering is the source of truth "
-            + "and answers 409 when the event is full.")
+            + "and answers 409 when the event is full. "
+            + "With maxDistanceKm the listing depends on the profile, is not cached and adds distanceKm to each event.")
+    @ApiResponse(responseCode = "400", description = "maxDistanceKm is not a positive number",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "maxDistanceKm was sent, but the user has no profile",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "409", description = "maxDistanceKm was sent, but the address of the profile could not be located",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<PageResponse<EventResponse>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "DATE_ASC") EventSort sort,
-            @ParameterObject EventFilter filter) {
+            @Valid @ParameterObject EventFilter filter,
+            Principal principal) {
         Pageable pageable = PageRequests.of(page, size, sort.toSort());
-        PageResponse<EventResponse> events = eventService.findAllEvents(pageable, filter);
+        PageResponse<EventResponse> events = eventService.findAllEvents(pageable, filter, principal.getName());
         return ResponseEntity.ok(events);
     }
 

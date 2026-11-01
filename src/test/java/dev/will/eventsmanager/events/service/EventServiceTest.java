@@ -83,7 +83,7 @@ class EventServiceTest {
 
         Event fakeEvent = Event.builder().id(1L).capacity(10).build();
         Pageable fakePageable = PageRequest.of(0, 10);
-        EventFilter filter = new EventFilter("test", null, null);
+        EventFilter filter = new EventFilter("test", null, null, null);
         Page<Event> fakePage = new PageImpl<>(
                 List.of(fakeEvent),
                 fakePageable,
@@ -96,7 +96,7 @@ class EventServiceTest {
                 .thenReturn(List.of(new EventRegistrationCount(1L, 3L)));
         when(eventMapper.toResponse(fakeEvent, 7)).thenReturn(fakeResponse);
 
-        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter, USER_SUB);
 
         assertThat(result.content())
                 .isNotNull()
@@ -125,7 +125,7 @@ class EventServiceTest {
         given(eventMapper.toResponse(withRegistrations, 7)).willReturn(first);
         given(eventMapper.toResponse(withoutRegistrations, 5)).willReturn(second);
 
-        PageResponse<EventResponse> result = eventService.findAllEvents(pageable, new EventFilter(null, null, null));
+        PageResponse<EventResponse> result = eventService.findAllEvents(pageable, new EventFilter(null, null, null, null), USER_SUB);
 
         assertThat(result.content()).containsExactly(first, second);
         then(eventRegistrationsRepository).should().countByEventIds(List.of(1L, 2L));
@@ -141,8 +141,8 @@ class EventServiceTest {
         when(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(fakePageable)))
                 .thenReturn(fakePage);
 
-        EventFilter filter = new EventFilter("test", null, null);
-        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter);
+        EventFilter filter = new EventFilter("test", null, null, null);
+        PageResponse<EventResponse> result = eventService.findAllEvents(fakePageable, filter, USER_SUB);
 
         assertThat(result.content()).isEmpty();
         then(eventRegistrationsRepository).shouldHaveNoInteractions();

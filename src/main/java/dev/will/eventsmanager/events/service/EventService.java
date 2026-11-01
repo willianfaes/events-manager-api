@@ -2,6 +2,7 @@ package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.config.CacheConfig;
+import dev.will.eventsmanager.common.exception.ProfileWithoutCoordinatesException;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
@@ -47,13 +48,37 @@ public class EventService {
     private final UserRepository userRepository;
 
     // The key relies on EventFilter always carrying a real `from`; without it a listing cached today would be served tomorrow.
-    @Cacheable(cacheNames = CacheConfig.EVENTS_LISTING, key = "#pageable.toString() + '|' + #filter.toString()")
-    public PageResponse<EventResponse> findAllEvents(Pageable pageable, EventFilter filter) {
+    // The distance depends on who asks, so that listing is never cached.
+    @Cacheable(cacheNames = CacheConfig.EVENTS_LISTING, key = "#pageable.toString() + '|' + #filter.toString()",
+            condition = "#filter.maxDistanceKm() == null")
+    public PageResponse<EventResponse> findAllEvents(Pageable pageable, EventFilter filter, String externalId) {
+        Coordinates origin = filter.maxDistanceKm() == null ? null : profileCoordinates(externalId);
         Specification<Event> specification = EventSpecs.from(filter);
+        if (origin != null) {
+            specification = specification.and(EventSpecs.withinDistanceOf(origin, filter.maxDistanceKm()));
+        }
         Page<Event> events = eventRepository.findAll(specification, pageable);
         Map<Long, Long> activeRegistrations = countActiveRegistrations(events.getContent());
-        return PageResponse.from(events.map(event -> eventMapper.toResponse(
-                event, event.remainingSpots(activeRegistrations.getOrDefault(event.getId(), 0L)))));
+        return PageResponse.from(events.map(event -> toListingResponse(
+                event, event.remainingSpots(activeRegistrations.getOrDefault(event.getId(), 0L)), origin)));
+    }
+
+    private Coordinates profileCoordinates(String externalId) {
+        User profile = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile", externalId));
+        Coordinates coordinates = profile.getAddress().coordinates();
+        if (coordinates == null) {
+            throw new ProfileWithoutCoordinatesException();
+        }
+        return coordinates;
+    }
+
+    private EventResponse toListingResponse(Event event, int remainingSpots, Coordinates origin) {
+        if (origin == null) {
+            return eventMapper.toResponse(event, remainingSpots);
+        }
+        double distanceKm = origin.distanceKmTo(event.getAddress().coordinates());
+        return eventMapper.toResponse(event, remainingSpots, Math.round(distanceKm * 10) / 10.0);
     }
 
     // One aggregated query for the whole page. Events without active registrations are absent from the map.

@@ -9,6 +9,7 @@ import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
+import dev.will.eventsmanager.users.service.UserGeocodingCoordinator;
 import dev.will.eventsmanager.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,9 +39,11 @@ import java.util.Set;
 public class UserController {
 
     private final UserService userService;
+    private final UserGeocodingCoordinator userGeocodingCoordinator;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserGeocodingCoordinator userGeocodingCoordinator) {
         this.userService = userService;
+        this.userGeocodingCoordinator = userGeocodingCoordinator;
     }
 
     @PostMapping("/me")
@@ -57,7 +60,7 @@ public class UserController {
             Principal principal,
             @RequestBody @Valid CreateProfileRequest request
     ) {
-        ProfileResponse profile = userService.createProfile(principal.getName(), request);
+        ProfileResponse profile = userGeocodingCoordinator.createProfile(principal.getName(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
         return ResponseEntity.created(location).body(profile);
     }

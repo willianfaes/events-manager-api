@@ -13,6 +13,7 @@ import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.dto.response.UserAddressResponse;
+import dev.will.eventsmanager.users.service.UserGeocodingCoordinator;
 import dev.will.eventsmanager.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,9 @@ class UserControllerWebSliceTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private UserGeocodingCoordinator userGeocodingCoordinator;
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -201,7 +205,7 @@ class UserControllerWebSliceTest {
     @Test
     @DisplayName("POST /users/me - should return 201 with the profile and a Location pointing to GET /users/me")
     void createProfile_should_return_created_profile() throws Exception {
-        given(userService.createProfile(USER_SUB, PROFILE_REQUEST)).willReturn(new ProfileResponse("Demo User", 30,
+        given(userGeocodingCoordinator.createProfile(USER_SUB, PROFILE_REQUEST)).willReturn(new ProfileResponse("Demo User", 30,
                 new UserAddressResponse(1L, "Via del Corso 1", null, "Rome", null, "00186", "IT")));
 
         mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
@@ -224,13 +228,13 @@ class UserControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("name")));
 
-        then(userService).shouldHaveNoInteractions();
+        then(userGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
     @DisplayName("POST /users/me - should return 409 when the profile already exists")
     void createProfile_should_return_conflict_when_profile_exists() throws Exception {
-        given(userService.createProfile(USER_SUB, PROFILE_REQUEST)).willThrow(new ProfileAlreadyExistsException());
+        given(userGeocodingCoordinator.createProfile(USER_SUB, PROFILE_REQUEST)).willThrow(new ProfileAlreadyExistsException());
 
         mockMvc.perform(post("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
                         .with(authenticatedUser()))

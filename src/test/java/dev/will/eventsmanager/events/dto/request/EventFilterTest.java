@@ -14,7 +14,7 @@ class EventFilterTest {
     void constructor_should_default_from_to_today_when_null() {
         LocalDate before = LocalDate.now();
 
-        EventFilter filter = new EventFilter(null, null, null);
+        EventFilter filter = new EventFilter(null, null, null, null);
 
         LocalDate after = LocalDate.now();
         // Bounded by two readings so the test cannot fail if it runs across midnight.
@@ -26,7 +26,7 @@ class EventFilterTest {
     void constructor_should_keep_from_when_informed() {
         LocalDate from = LocalDate.of(2050, 1, 1);
 
-        EventFilter filter = new EventFilter(null, from, null);
+        EventFilter filter = new EventFilter(null, from, null, null);
 
         then(filter.from()).isEqualTo(from);
     }

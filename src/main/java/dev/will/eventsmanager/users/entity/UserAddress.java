@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.users.entity;
 
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
@@ -38,6 +39,21 @@ public class UserAddress {
     @Column(nullable = false, length = 2)
     private String countryCode;
 
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
+
+    public void locateAt(Coordinates coordinates) {
+        this.latitude = coordinates == null ? null : coordinates.latitude();
+        this.longitude = coordinates == null ? null : coordinates.longitude();
+    }
+
+    public Coordinates coordinates() {
+        return latitude == null ? null : new Coordinates(latitude, longitude);
+    }
 }
