@@ -41,6 +41,12 @@ public class EventAddress {
     @Column(name = "venue_name", length = 255)
     private String venueName;
 
+    @Column
+    private Double latitude;
+
+    @Column
+    private Double longitude;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
 }

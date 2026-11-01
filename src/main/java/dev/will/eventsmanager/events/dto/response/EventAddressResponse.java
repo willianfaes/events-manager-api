@@ -11,5 +11,7 @@ public record EventAddressResponse(
         String stateOrProvince,
         String postalCode,
         String countryCode,
-        String venueName
+        String venueName,
+        Double latitude,
+        Double longitude
 ) {}
