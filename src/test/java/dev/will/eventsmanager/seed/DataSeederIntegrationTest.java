@@ -50,6 +50,8 @@ class DataSeederIntegrationTest extends AbstractIntegrationTest {
         then(events).extracting(Event::getSchedule)
                 .allSatisfy(schedule -> then(schedule).isBetween(before.plusDays(8), before.plusDays(76)));
         then(events).extracting(Event::getAddress).extracting(EventAddress::getCountryCode).containsOnly("IT");
+        then(events).extracting(Event::getAddress).extracting(EventAddress::getLatitude).doesNotContainNull();
+        then(events).extracting(Event::getAddress).extracting(EventAddress::getLongitude).doesNotContainNull();
     }
 
     @Test
