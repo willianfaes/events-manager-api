@@ -5,8 +5,6 @@ import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.io.Serializable;
-
 @Entity
 @SQLDelete(sql = "UPDATE user_addresses SET is_deleted = true WHERE id=?")
 @SQLRestriction("is_deleted = false")
@@ -16,7 +14,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Builder
 @Table(name = "user_addresses")
-public class UserAddress implements Serializable {
+public class UserAddress {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
