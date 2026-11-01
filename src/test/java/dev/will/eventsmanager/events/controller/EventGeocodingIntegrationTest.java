@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -85,7 +86,7 @@ class EventGeocodingIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("PUT /admin/events/{eventId} - should replace the coordinates")
     void updateEvent_whenTheAddressIsFound_replacesTheCoordinates() throws Exception {
-        Long eventId = createEvent(Optional.of(VERONA));
+        Long eventId = createEventInVerona();
         given(geocoder.locate(anyString())).willReturn(Optional.of(ROMA));
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId).contentType(MediaType.APPLICATION_JSON).content(BODY))
@@ -97,7 +98,7 @@ class EventGeocodingIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("PUT /admin/events/{eventId} - should clear the coordinates when the new address has none")
     void updateEvent_whenThereAreNoCoordinates_clearsThem() throws Exception {
-        Long eventId = createEvent(Optional.of(VERONA));
+        Long eventId = createEventInVerona();
         given(geocoder.locate(anyString())).willReturn(Optional.empty());
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId).contentType(MediaType.APPLICATION_JSON).content(BODY))
@@ -106,11 +107,11 @@ class EventGeocodingIntegrationTest extends AbstractIntegrationTest {
         then(reloadedEvent(eventId).getAddress().getLatitude()).isNull();
     }
 
-    private Long createEvent(Optional<Coordinates> coordinates) throws Exception {
-        given(geocoder.locate(anyString())).willReturn(coordinates);
+    private Long createEventInVerona() throws Exception {
+        given(geocoder.locate(anyString())).willReturn(Optional.of(VERONA));
         String location = mockMvc.perform(post("/admin/events").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andReturn().getResponse().getHeader("Location");
-        return Long.valueOf(location.substring(location.lastIndexOf('/') + 1));
+        return Long.valueOf(requireNonNull(location).substring(location.lastIndexOf('/') + 1));
     }
 
     private Event reloadedEvent(Long eventId) {

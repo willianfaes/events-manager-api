@@ -62,8 +62,10 @@ public class NominatimClient {
                 : Optional.of(places.getFirst().toCoordinates());
     }
 
+    // Called by @Retry through its name, and it must repeat the arguments of locate.
     // Coordinates are optional: a failing provider must not stop the event from being saved.
-    private Optional<Coordinates> withoutCoordinates(String address, Exception exception) {
+    @SuppressWarnings("unused")
+    Optional<Coordinates> withoutCoordinates(String address, Exception exception) {
         log.warn("Geocoding failed, continuing without coordinates: {}", exception.getClass().getSimpleName());
         return Optional.empty();
     }
