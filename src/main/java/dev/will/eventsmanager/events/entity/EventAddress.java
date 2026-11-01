@@ -56,4 +56,8 @@ public class EventAddress {
         this.latitude = coordinates == null ? null : coordinates.latitude();
         this.longitude = coordinates == null ? null : coordinates.longitude();
     }
+
+    public Coordinates coordinates() {
+        return latitude == null ? null : new Coordinates(latitude, longitude);
+    }
 }

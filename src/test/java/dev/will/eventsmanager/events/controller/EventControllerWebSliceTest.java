@@ -10,6 +10,8 @@ import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.service.EventService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -170,21 +172,21 @@ class EventControllerWebSliceTest {
     @DisplayName("GET /events - should use default pagination and DATE_ASC sort when no params are sent")
     void getAllEvents_should_use_default_pagination_and_sort() throws Exception {
         Pageable defaultPageable = PageRequest.of(0, 20, EventSort.DATE_ASC.toSort());
-        EventFilter noFilter = new EventFilter(null, null, null);
-        given(eventService.findAllEvents(defaultPageable, noFilter)).willReturn(emptyPage());
+        EventFilter noFilter = new EventFilter(null, null, null, null);
+        given(eventService.findAllEvents(defaultPageable, noFilter, USER_SUB)).willReturn(emptyPage());
 
         mockMvc.perform(get("/events").with(authenticatedUser()))
                 .andExpect(status().isOk());
 
-        then(eventService).should().findAllEvents(defaultPageable, noFilter);
+        then(eventService).should().findAllEvents(defaultPageable, noFilter, USER_SUB);
     }
 
     @Test
     @DisplayName("GET /events - should forward page, size, sort and filter query params to the service")
     void getAllEvents_should_forward_query_params() throws Exception {
         Pageable expectedPageable = PageRequest.of(2, 10, EventSort.NAME_DESC.toSort());
-        EventFilter expectedFilter = new EventFilter("rock", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 12, 31));
-        given(eventService.findAllEvents(expectedPageable, expectedFilter)).willReturn(emptyPage());
+        EventFilter expectedFilter = new EventFilter("rock", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 12, 31), null);
+        given(eventService.findAllEvents(expectedPageable, expectedFilter, USER_SUB)).willReturn(emptyPage());
 
         mockMvc.perform(get("/events")
                         .param("page", "2").param("size", "10").param("sort", "NAME_DESC")
@@ -192,7 +194,17 @@ class EventControllerWebSliceTest {
                         .with(authenticatedUser()))
                 .andExpect(status().isOk());
 
-        then(eventService).should().findAllEvents(expectedPageable, expectedFilter);
+        then(eventService).should().findAllEvents(expectedPageable, expectedFilter, USER_SUB);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc"})
+    @DisplayName("GET /events - should return 400 Bad Request when maxDistanceKm is not a positive number")
+    void getAllEvents_should_returnBadRequest_when_maxDistanceKmIsInvalid(String maxDistanceKm) throws Exception {
+        mockMvc.perform(get("/events").param("maxDistanceKm", maxDistanceKm).with(authenticatedUser()))
+                .andExpect(status().isBadRequest());
+
+        then(eventService).shouldHaveNoInteractions();
     }
 
     @Test

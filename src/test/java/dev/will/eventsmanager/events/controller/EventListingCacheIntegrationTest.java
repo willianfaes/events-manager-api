@@ -2,6 +2,7 @@ package dev.will.eventsmanager.events.controller;
 
 import com.jayway.jsonpath.JsonPath;
 import dev.will.eventsmanager.AbstractIntegrationTest;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
@@ -109,6 +110,23 @@ class EventListingCacheIntegrationTest extends AbstractIntegrationTest {
         verify(eventRepository, times(1)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
 
         listing(asUser("user"), get("/events").param("name", token).param(param, value));
+
+        verify(eventRepository, times(2)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
+    }
+
+    @Test
+    @DisplayName("GET /events - should never cache a listing filtered by distance, because it depends on the user")
+    void getAllEvents_whenFilteredByDistance_alwaysQueriesTheDatabase() throws Exception {
+        String token = uniqueToken();
+        saveEvent(token, 10);
+        User profile = validUser();
+        profile.setExternalId(USER_PREFIX + UUID.randomUUID());
+        profile.getAddress().locateAt(new Coordinates(45.4642, 9.19));
+        userRepository.save(profile);
+        RequestPostProcessor user = authenticatedAs(profile.getExternalId());
+
+        listing(user, get("/events").param("name", token).param("maxDistanceKm", "50"));
+        listing(user, get("/events").param("name", token).param("maxDistanceKm", "50"));
 
         verify(eventRepository, times(2)).findAll(anySpecification(), ArgumentMatchers.<Pageable>any());
     }

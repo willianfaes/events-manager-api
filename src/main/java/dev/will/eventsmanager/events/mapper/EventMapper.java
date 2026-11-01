@@ -21,5 +21,10 @@ public interface EventMapper {
     void updateEntity(EventCreateRequest request, @MappingTarget Event event);
 
     @Mapping(target = "remainingSpots", source = "remainingSpots")
+    @Mapping(target = "distanceKm", ignore = true)
     EventResponse toResponse(Event event, int remainingSpots);
+
+    @Mapping(target = "remainingSpots", source = "remainingSpots")
+    @Mapping(target = "distanceKm", source = "distanceKm")
+    EventResponse toResponse(Event event, int remainingSpots, Double distanceKm);
 }

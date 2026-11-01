@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.will.eventsmanager.events.entity.Category;
 import lombok.Builder;
 
@@ -15,6 +16,9 @@ public record EventResponse(
         EventAddressResponse address,
         String description,
         int capacity,
-        int remainingSpots
+        int remainingSpots,
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        Double distanceKm
 ) {
 }

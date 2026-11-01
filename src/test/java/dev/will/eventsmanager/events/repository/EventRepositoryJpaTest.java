@@ -58,7 +58,7 @@ class EventRepositoryJpaTest {
         saveEvent("Rock in Rio", DAY.atTime(20, 0));
         saveEvent("Jazz Night", DAY.atTime(21, 0));
         em.clear();
-        EventFilter filter = new EventFilter("ROCK", null, null);
+        EventFilter filter = new EventFilter("ROCK", null, null, null);
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
@@ -72,7 +72,7 @@ class EventRepositoryJpaTest {
         saveEvent("Before", DAY.minusDays(1).atTime(23, 59));
         saveEvent("On from day", DAY.atStartOfDay());
         em.clear();
-        EventFilter filter = new EventFilter(null, DAY, null);
+        EventFilter filter = new EventFilter(null, DAY, null, null);
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
@@ -86,7 +86,7 @@ class EventRepositoryJpaTest {
         saveEvent("Evening of to day", DAY.atTime(18, 0));
         saveEvent("Next day", DAY.plusDays(1).atStartOfDay());
         em.clear();
-        EventFilter filter = new EventFilter(null, null, DAY);
+        EventFilter filter = new EventFilter(null, null, DAY, null);
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
@@ -100,7 +100,7 @@ class EventRepositoryJpaTest {
         saveEvent("Past", LocalDateTime.now().minusDays(10));
         saveEvent("Future", LocalDateTime.now().plusDays(10));
         em.clear();
-        EventFilter filter = new EventFilter(null, null, null);
+        EventFilter filter = new EventFilter(null, null, null, null);
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
@@ -113,7 +113,7 @@ class EventRepositoryJpaTest {
     void shouldFetchAddressTogetherWithEvents() {
         saveEvent("Any", DAY.atTime(20, 0));
         em.clear();
-        EventFilter filter = new EventFilter(null, null, null);
+        EventFilter filter = new EventFilter(null, null, null, null);
 
         Page<Event> result = eventRepository.findAll(EventSpecs.from(filter), PAGEABLE);
 
