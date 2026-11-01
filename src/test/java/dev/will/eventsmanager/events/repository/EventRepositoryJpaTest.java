@@ -116,6 +116,25 @@ class EventRepositoryJpaTest {
         assertThat(Hibernate.isInitialized(result.getContent().getFirst().getAddress())).isTrue();
     }
 
+    @Test
+    void shouldPersistAddressCoordinates() {
+        EventAddress address = EventAddress.builder()
+                .street("Via Roma 1")
+                .city("Torino")
+                .postalCode("10100")
+                .countryCode("IT")
+                .latitude(45.0703)
+                .longitude(7.6869)
+                .build();
+        Long id = em.persistFlushFind(address).getId();
+        em.clear();
+
+        EventAddress found = em.find(EventAddress.class, id);
+
+        assertThat(found.getLatitude()).isEqualTo(45.0703);
+        assertThat(found.getLongitude()).isEqualTo(7.6869);
+    }
+
     private void saveEvent(String name, LocalDateTime schedule) {
         EventAddress address = EventAddress.builder()
                 .street("Via Roma 1")

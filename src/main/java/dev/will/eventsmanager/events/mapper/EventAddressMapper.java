@@ -12,10 +12,14 @@ import org.mapstruct.MappingTarget;
 public interface EventAddressMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "latitude", ignore = true)
+    @Mapping(target = "longitude", ignore = true)
     EventAddress toEntity(EventAddressRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "latitude", ignore = true)
+    @Mapping(target = "longitude", ignore = true)
     void updateEntity(EventAddressRequest request, @MappingTarget EventAddress address);
 
     EventAddressResponse toResponse(EventAddress address);

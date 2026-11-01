@@ -2,6 +2,7 @@ package dev.will.eventsmanager.events.service;
 
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.config.CacheConfig;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
@@ -74,14 +75,15 @@ public class EventService {
 
     // allEntries: a listing key cannot be derived from one event, so any change drops every cached page.
     @CacheEvict(cacheNames = CacheConfig.EVENTS_LISTING, allEntries = true)
-    public EventResponse createEvent(EventCreateRequest eventCreateRequest) {
+    public EventResponse createEvent(EventCreateRequest eventCreateRequest, Coordinates coordinates) {
         Event entity = eventMapper.toEntity(eventCreateRequest);
+        entity.getAddress().locateAt(coordinates);
         Event saved = eventRepository.save(entity);
         return eventMapper.toResponse(saved, saved.remainingSpots(0));
     }
 
     @CacheEvict(cacheNames = CacheConfig.EVENTS_LISTING, allEntries = true)
-    public EventResponse updateEvent(Long eventId, EventCreateRequest request) {
+    public EventResponse updateEvent(Long eventId, EventCreateRequest request, Coordinates coordinates) {
         Event event = eventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
 
@@ -91,6 +93,7 @@ public class EventService {
         }
 
         eventMapper.updateEntity(request, event);
+        event.getAddress().locateAt(coordinates);
         return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 

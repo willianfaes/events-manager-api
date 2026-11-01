@@ -12,6 +12,7 @@ import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventAddressResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
+import dev.will.eventsmanager.events.service.EventGeocodingCoordinator;
 import dev.will.eventsmanager.events.service.EventService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,9 @@ class AdminEventControllerWebSliceTest {
     private EventService eventService;
 
     @MockitoBean
+    private EventGeocodingCoordinator eventGeocodingCoordinator;
+
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
     @Test
@@ -71,7 +75,7 @@ class AdminEventControllerWebSliceTest {
         EventCreateRequest request = validRequest().build();
         EventResponse response = validResponse().id(generatedId).build();
 
-        given(eventService.createEvent(request)).willReturn(response);
+        given(eventGeocodingCoordinator.createEvent(request)).willReturn(response);
 
         mockMvc.perform(post("/admin/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,7 +86,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(jsonPath("$.id").value(generatedId))
                 .andExpect(jsonPath("$.capacity").value(50));
 
-        then(eventService).should().createEvent(request);
+        then(eventGeocodingCoordinator).should().createEvent(request);
     }
 
     @Test
@@ -97,7 +101,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("capacity")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @ParameterizedTest
@@ -113,7 +117,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("capacity")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -123,7 +127,7 @@ class AdminEventControllerWebSliceTest {
         Long generatedId = 105L;
         EventCreateRequest request = validRequest().description("A".repeat(1000)).build();
 
-        given(eventService.createEvent(request)).willReturn(validResponse().id(generatedId).build());
+        given(eventGeocodingCoordinator.createEvent(request)).willReturn(validResponse().id(generatedId).build());
 
         mockMvc.perform(post("/admin/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +136,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(jsonPath("$.id").value(generatedId))
                 .andExpect(header().string("Location", endsWith("/events/" + generatedId)));
 
-        then(eventService).should().createEvent(request);
+        then(eventGeocodingCoordinator).should().createEvent(request);
     }
 
     @Test
@@ -147,7 +151,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("category")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -161,7 +165,7 @@ class AdminEventControllerWebSliceTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -177,7 +181,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("description")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @ParameterizedTest
@@ -196,7 +200,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("street")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -233,7 +237,7 @@ class AdminEventControllerWebSliceTest {
         Long eventId = 7L;
         EventCreateRequest request = validRequest().capacity(80).build();
 
-        given(eventService.updateEvent(eventId, request))
+        given(eventGeocodingCoordinator.updateEvent(eventId, request))
                 .willReturn(validResponse().id(eventId).capacity(80).build());
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId)
@@ -243,7 +247,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(jsonPath("$.id").value(eventId))
                 .andExpect(jsonPath("$.capacity").value(80));
 
-        then(eventService).should().updateEvent(eventId, request);
+        then(eventGeocodingCoordinator).should().updateEvent(eventId, request);
     }
 
     @Test
@@ -258,7 +262,7 @@ class AdminEventControllerWebSliceTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("name")));
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -272,7 +276,7 @@ class AdminEventControllerWebSliceTest {
                         .content(notJson))
                 .andExpect(status().isBadRequest());
 
-        then(eventService).shouldHaveNoInteractions();
+        then(eventGeocodingCoordinator).shouldHaveNoInteractions();
     }
 
     @Test
@@ -282,7 +286,7 @@ class AdminEventControllerWebSliceTest {
         Long eventId = 99L;
         EventCreateRequest request = validRequest().build();
 
-        given(eventService.updateEvent(eventId, request))
+        given(eventGeocodingCoordinator.updateEvent(eventId, request))
                 .willThrow(new ResourceNotFoundException("Event", eventId));
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId)
@@ -298,7 +302,7 @@ class AdminEventControllerWebSliceTest {
         Long eventId = 7L;
         EventCreateRequest request = validRequest().capacity(2).build();
 
-        given(eventService.updateEvent(eventId, request))
+        given(eventGeocodingCoordinator.updateEvent(eventId, request))
                 .willThrow(new CapacityBelowRegistrationsException(3));
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId)

@@ -51,19 +51,22 @@ class EventListingCacheFallbackIntegrationTest extends AbstractIntegrationTest {
         // running evictions after the commit.
         @Bean
         CacheManager failingCacheManager() {
-            Cache failing = mock(Cache.class, invocation -> {
+            SimpleCacheManager manager = new SimpleCacheManager();
+            manager.setCaches(List.of(failingCache(CacheConfig.EVENTS_LISTING), failingCache(CacheConfig.GEOCODING)));
+            manager.afterPropertiesSet();
+            return new TransactionAwareCacheManagerProxy(manager);
+        }
+
+        private Cache failingCache(String name) {
+            return mock(Cache.class, invocation -> {
                 if (invocation.getMethod().getName().equals("getName")) {
-                    return CacheConfig.EVENTS_LISTING;
+                    return name;
                 }
                 if (redisDown.get()) {
                     throw new QueryTimeoutException("Redis is down");
                 }
                 return null;
             });
-            SimpleCacheManager manager = new SimpleCacheManager();
-            manager.setCaches(List.of(failing));
-            manager.afterPropertiesSet();
-            return new TransactionAwareCacheManagerProxy(manager);
         }
     }
 
