@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.repository;
 
 import dev.will.eventsmanager.SharedPostgres;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
@@ -35,6 +36,9 @@ class EventRepositoryJpaTest {
 
     private static final Pageable PAGEABLE = PageRequest.of(0, 20, Sort.by("schedule"));
     private static final LocalDate DAY = LocalDate.now().plusDays(30);
+    private static final Coordinates MILANO = new Coordinates(45.4642, 9.19);
+    private static final Coordinates VERONA = new Coordinates(45.4380, 10.9938);
+    private static final Coordinates ROMA = new Coordinates(41.9028, 12.4964);
 
     @Autowired
     EventRepository eventRepository;
@@ -133,6 +137,60 @@ class EventRepositoryJpaTest {
 
         assertThat(found.getLatitude()).isEqualTo(45.0703);
         assertThat(found.getLongitude()).isEqualTo(7.6869);
+    }
+
+    @Test
+    void shouldKeepOnlyEventsInsideTheDistance() {
+        saveEventAt("Verona", VERONA);
+        saveEventAt("Roma", ROMA);
+        em.clear();
+
+        Page<Event> result = eventRepository.findAll(EventSpecs.withinDistanceOf(MILANO, 200), PAGEABLE);
+
+        assertThat(result.getContent()).extracting(Event::getName).containsExactly("Verona");
+    }
+
+    @Test
+    void shouldLeaveOutEventsWithoutCoordinates() {
+        saveEvent("No coordinates", DAY.atTime(20, 0));
+        em.clear();
+
+        Page<Event> result = eventRepository.findAll(EventSpecs.withinDistanceOf(MILANO, 20000), PAGEABLE);
+
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    // Guards the two copies of the formula: the database has to draw the line where Java draws it.
+    @Test
+    void shouldAgreeWithTheDistanceComputedInJava() {
+        saveEventAt("Verona", VERONA);
+        em.clear();
+        double distanceKm = MILANO.distanceKmTo(VERONA);
+
+        Page<Event> justInside = eventRepository.findAll(EventSpecs.withinDistanceOf(MILANO, distanceKm + 0.01), PAGEABLE);
+        Page<Event> justOutside = eventRepository.findAll(EventSpecs.withinDistanceOf(MILANO, distanceKm - 0.01), PAGEABLE);
+
+        assertThat(justInside.getContent()).hasSize(1);
+        assertThat(justOutside.getContent()).isEmpty();
+    }
+
+    private void saveEventAt(String name, Coordinates coordinates) {
+        EventAddress address = EventAddress.builder()
+                .street("Via Roma 1")
+                .city("Any")
+                .postalCode("10100")
+                .countryCode("IT")
+                .latitude(coordinates.latitude())
+                .longitude(coordinates.longitude())
+                .build();
+
+        em.persistAndFlush(Event.builder()
+                .name(name)
+                .category(Category.PARTY)
+                .schedule(DAY.atTime(20, 0))
+                .address(address)
+                .capacity(100)
+                .build());
     }
 
     private void saveEvent(String name, LocalDateTime schedule) {
