@@ -1,5 +1,7 @@
 package dev.will.eventsmanager.events.service;
 
+import dev.will.eventsmanager.common.geocoding.Coordinates;
+
 import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
@@ -14,6 +16,7 @@ import dev.will.eventsmanager.events.dto.response.EventRegistrationResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
+import dev.will.eventsmanager.events.entity.EventAddress;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
@@ -54,6 +57,8 @@ import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
+
+    private static final Coordinates COORDINATES = new Coordinates(45.4390, 10.9942);
 
     @Mock
     EventRepository eventRepository;
@@ -193,7 +198,7 @@ class EventServiceTest {
                 .description("Annual tech conference")
                 .build();
 
-        Event toPersist = Event.builder().build();
+        Event toPersist = Event.builder().address(EventAddress.builder().build()).build();
         Event saved = Event.builder().id(1L).capacity(20).build();
         EventResponse expected = EventResponse.builder().id(1L).build();
 
@@ -201,16 +206,18 @@ class EventServiceTest {
         when(eventRepository.save(toPersist)).thenReturn(saved);
         when(eventMapper.toResponse(saved, 20)).thenReturn(expected);
 
-        EventResponse result = eventService.createEvent(request);
+        EventResponse result = eventService.createEvent(request, COORDINATES);
 
         assertThat(result).isSameAs(expected);
+        assertThat(toPersist.getAddress().getLatitude()).isEqualTo(COORDINATES.latitude());
+        assertThat(toPersist.getAddress().getLongitude()).isEqualTo(COORDINATES.longitude());
         then(eventRegistrationsRepository).shouldHaveNoInteractions();
     }
 
     @Test
     void updateEvent_whenCapacityCoversTheActiveRegistrations_updatesTheEvent() {
         Long eventId = 10L;
-        Event event = Event.builder().id(eventId).capacity(50).build();
+        Event event = Event.builder().id(eventId).capacity(50).address(EventAddress.builder().build()).build();
         EventCreateRequest request = EventCreateRequest.builder().name("New name").capacity(3).build();
         EventResponse expected = EventResponse.builder().id(eventId).build();
 
@@ -223,10 +230,11 @@ class EventServiceTest {
         }).given(eventMapper).updateEntity(request, event);
         given(eventMapper.toResponse(event, 0)).willReturn(expected);
 
-        EventResponse result = eventService.updateEvent(eventId, request);
+        EventResponse result = eventService.updateEvent(eventId, request, COORDINATES);
 
         then(eventMapper).should().updateEntity(request, event);
         assertThat(result).isSameAs(expected);
+        assertThat(event.getAddress().getLatitude()).isEqualTo(COORDINATES.latitude());
     }
 
     @Test
@@ -238,7 +246,7 @@ class EventServiceTest {
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(3L);
 
-        assertThatThrownBy(() -> eventService.updateEvent(eventId, request))
+        assertThatThrownBy(() -> eventService.updateEvent(eventId, request, null))
                 .isInstanceOf(CapacityBelowRegistrationsException.class)
                 .hasMessageContaining("3");
 
@@ -252,7 +260,7 @@ class EventServiceTest {
 
         given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.empty());
 
-        assertThatThrownBy(() -> eventService.updateEvent(eventId, request))
+        assertThatThrownBy(() -> eventService.updateEvent(eventId, request, null))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event");
 

@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Optional;
 
@@ -24,7 +23,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.BDDAssertions.then;
 
-@TestPropertySource(properties = "resilience4j.retry.instances.geocoding.wait-duration=1ms")
 class NominatimClientResilienceIntegrationTest extends AbstractIntegrationTest {
 
     private static final String ADDRESS = "Piazza Bra 1, 37121 Verona, IT";

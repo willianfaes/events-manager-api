@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.auth.config;
 
+import dev.will.eventsmanager.events.service.EventGeocodingCoordinator;
 import dev.will.eventsmanager.events.service.EventService;
 import dev.will.eventsmanager.users.service.UserService;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +39,9 @@ class SecurityAccessRulesWebSliceTest {
 
     @MockitoBean
     private EventService eventService;
+
+    @MockitoBean
+    private EventGeocodingCoordinator eventGeocodingCoordinator;
 
     @MockitoBean
     private UserService userService;

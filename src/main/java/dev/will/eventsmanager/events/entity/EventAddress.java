@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.entity;
 
+import dev.will.eventsmanager.common.geocoding.Coordinates;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
@@ -49,4 +50,10 @@ public class EventAddress {
 
     @Column(name = "is_deleted", nullable = false)
     private boolean deleted = false;
+
+    // Null clears them: the address may have changed, and old coordinates would point to the wrong place.
+    public void locateAt(Coordinates coordinates) {
+        this.latitude = coordinates == null ? null : coordinates.latitude();
+        this.longitude = coordinates == null ? null : coordinates.longitude();
+    }
 }

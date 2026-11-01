@@ -9,6 +9,7 @@ import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
 import dev.will.eventsmanager.events.dto.response.EventAttendeeResponse;
 import dev.will.eventsmanager.events.dto.response.EventResponse;
+import dev.will.eventsmanager.events.service.EventGeocodingCoordinator;
 import dev.will.eventsmanager.events.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,9 +41,11 @@ import java.net.URI;
 public class AdminEventController {
 
     private final EventService eventService;
+    private final EventGeocodingCoordinator eventGeocodingCoordinator;
 
-    public AdminEventController(EventService eventService) {
+    public AdminEventController(EventService eventService, EventGeocodingCoordinator eventGeocodingCoordinator) {
         this.eventService = eventService;
+        this.eventGeocodingCoordinator = eventGeocodingCoordinator;
     }
 
     @PostMapping
@@ -52,7 +55,7 @@ public class AdminEventController {
     @ApiResponse(responseCode = "400", description = "Invalid payload (e.g. missing category, non-positive capacity, schedule in the past)",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<EventResponse> createEvent(@Valid @RequestBody EventCreateRequest request) {
-        EventResponse created = eventService.createEvent(request);
+        EventResponse created = eventGeocodingCoordinator.createEvent(request);
         URI location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/events/{id}")
                 .buildAndExpand(created.id())
@@ -76,7 +79,7 @@ public class AdminEventController {
     public ResponseEntity<EventResponse> updateEvent(
             @PathVariable Long eventId,
             @Valid @RequestBody EventCreateRequest request) {
-        return ResponseEntity.ok(eventService.updateEvent(eventId, request));
+        return ResponseEntity.ok(eventGeocodingCoordinator.updateEvent(eventId, request));
     }
 
     @DeleteMapping("/{eventId}")
