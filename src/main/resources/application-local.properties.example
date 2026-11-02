@@ -8,3 +8,5 @@ spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.<region
 # Optional, for the login button in Swagger UI: `terraform output cognito_hosted_ui_url` and `cognito_client_id`.
 app.cognito.hosted-ui-url=https://<domain>.auth.<region>.amazoncognito.com
 springdoc.swagger-ui.oauth.client-id=<client-id>
+# Optional, gives the demo user a profile with coordinates: `terraform output demo_user_sub` (empty skips it).
+app.demo.user-sub=

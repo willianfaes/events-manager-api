@@ -4,6 +4,9 @@ import dev.will.eventsmanager.AbstractIntegrationTest;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
 import dev.will.eventsmanager.events.repository.EventRepository;
+import dev.will.eventsmanager.users.entity.User;
+import dev.will.eventsmanager.users.entity.UserAddress;
+import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static dev.will.eventsmanager.TestFixtures.subOf;
+import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
 
 @Transactional
 class DataSeederIntegrationTest extends AbstractIntegrationTest {
     private static final String JAZZ_EVENING = "Jazz Evening";
+    private static final String DEMO_SUB = subOf("demo");
     private static final List<String> DEMO_EVENT_NAMES = List.of(
             "Night at the Museum",
             "Symphonic Night",
@@ -32,6 +38,9 @@ class DataSeederIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     EventRepository eventRepository;
+
+    @Autowired
+    UserRepository userRepository;
 
     // The context already ran the seeder once and committed its events; start from an empty table (rolled back).
     @BeforeEach
@@ -75,6 +84,44 @@ class DataSeederIntegrationTest extends AbstractIntegrationTest {
         List<Event> jazzEvents = eventsNamed(JAZZ_EVENING);
         then(jazzEvents).hasSize(2);
         then(jazzEvents).filteredOn(event -> event.getSchedule().isAfter(LocalDateTime.now())).hasSize(1);
+    }
+
+    @Test
+    void run_whenTheDemoSubIsConfiguredAndHasNoProfile_createsItWithCoordinates() {
+        seederWithDemoSub().run();
+
+        User demo = userRepository.findByExternalId(DEMO_SUB).orElseThrow();
+        UserAddress address = demo.getAddress();
+        then(address.getLatitude()).isNotNull();
+        then(address.getLongitude()).isNotNull();
+    }
+
+    @Test
+    void run_whenTheDemoProfileAlreadyExists_leavesItUnchanged() {
+        User existing = validUser();
+        existing.setExternalId(DEMO_SUB);
+        existing.setName("Existing Name");
+        userRepository.saveAndFlush(existing);
+        long usersBefore = userRepository.count();
+
+        seederWithDemoSub().run();
+
+        then(userRepository.count()).isEqualTo(usersBefore);
+        then(userRepository.findByExternalId(DEMO_SUB)).get().extracting(User::getName).isEqualTo("Existing Name");
+    }
+
+    // The test configuration sets no demo sub, so the injected seeder runs as it would for a cloner.
+    @Test
+    void run_whenTheDemoSubIsNotConfigured_createsNoProfile() {
+        long usersBefore = userRepository.count();
+
+        seeder.run();
+
+        then(userRepository.count()).isEqualTo(usersBefore);
+    }
+
+    private DataSeeder seederWithDemoSub() {
+        return new DataSeeder(eventRepository, userRepository, DEMO_SUB);
     }
 
     private List<Event> eventsNamed(String name) {
