@@ -16,7 +16,8 @@ public record EventFilter(
         @Schema(description = "Events up to this date, format yyyy-MM-dd")
         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 
-        @Schema(description = "Only events up to this distance, in km, from the address in the profile. Requires a profile")
+        @Schema(description = "Only events up to this distance, in km, from the address in the profile; each event then "
+                + "shows its distanceKm. Requires a profile (the demo user's is in Milano: try 50)")
         @Positive Double maxDistanceKm
 ) {
     public EventFilter {

@@ -37,3 +37,8 @@ output "cognito_hosted_ui_url" {
   description = "Base address of the hosted login page"
   value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.region}.amazoncognito.com"
 }
+
+output "demo_user_sub" {
+  description = "Sub of the demo user: the API's DEMO_USER_SUB, so DataSeeder gives it a profile"
+  value       = aws_cognito_user.demo.sub
+}

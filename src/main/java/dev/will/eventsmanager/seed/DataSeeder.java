@@ -4,8 +4,11 @@ import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
 import dev.will.eventsmanager.events.repository.EventRepository;
+import dev.will.eventsmanager.users.entity.User;
+import dev.will.eventsmanager.users.entity.UserAddress;
+import dev.will.eventsmanager.users.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -19,14 +22,10 @@ import static dev.will.eventsmanager.events.entity.Category.CULTURAL;
 import static dev.will.eventsmanager.events.entity.Category.PARTY;
 import static dev.will.eventsmanager.events.entity.Category.SPORT;
 
-/**
- * Keeps the demo catalog alive: on every start, each event below is created again if there is no upcoming event
- * with its name, so the listing never runs out of future events. The events are fictional; the venues are real.
- * The coordinates came from Nominatim once and are fixed here: a start must not depend on the provider, whose
- * policy forbids bulk use.
- */
+// Keeps the demo alive on every start: re-creates each event below when it has no upcoming date (fictional events,
+// real venues) and gives the public demo user a profile when its sub is configured. The coordinates are fixed, so a
+// start never calls Nominatim.
 @Component
-@RequiredArgsConstructor
 @Transactional
 @Profile({"local", "prod"})
 class DataSeeder implements CommandLineRunner {
@@ -75,9 +74,23 @@ class DataSeeder implements CommandLineRunner {
                     40.8241, 14.1936));
 
     private final EventRepository eventRepository;
+    private final UserRepository userRepository;
+    private final String demoUserSub;
+
+    DataSeeder(EventRepository eventRepository, UserRepository userRepository,
+               @Value("${app.demo.user-sub:}") String demoUserSub) {
+        this.eventRepository = eventRepository;
+        this.userRepository = userRepository;
+        this.demoUserSub = demoUserSub;
+    }
 
     @Override
     public void run(String... args) {
+        seedEvents();
+        seedDemoProfile();
+    }
+
+    private void seedEvents() {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today = now.toLocalDate();
 
@@ -104,5 +117,27 @@ class DataSeeder implements CommandLineRunner {
                     .capacity(demo.capacity())
                     .build());
         }
+    }
+
+    // Milano's coordinates, as geocoding the postal code, city and country would give them.
+    private void seedDemoProfile() {
+        if (demoUserSub.isBlank() || userRepository.findByExternalId(demoUserSub).isPresent()) return;
+
+        UserAddress address = UserAddress.builder()
+                .street("Piazza del Duomo")
+                .city("Milano")
+                .stateOrProvince("Lombardia")
+                .postalCode("20122")
+                .countryCode(COUNTRY_CODE)
+                .latitude(45.4642)
+                .longitude(9.1896)
+                .build();
+
+        userRepository.save(User.builder()
+                .name("Demo User")
+                .age(30)
+                .externalId(demoUserSub)
+                .address(address)
+                .build());
     }
 }
