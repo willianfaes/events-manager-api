@@ -100,6 +100,7 @@ First time, in this order (from this directory, in WSL):
        aws ssm put-parameter --name /events-manager/prod/COGNITO_ISSUER_URI --type String --value "$(terraform output -raw cognito_issuer_uri)"
        aws ssm put-parameter --name /events-manager/prod/COGNITO_HOSTED_UI_URL --type String --value "$(terraform output -raw cognito_hosted_ui_url)"
        aws ssm put-parameter --name /events-manager/prod/COGNITO_CLIENT_ID --type String --value "$(terraform output -raw cognito_client_id)"
+       aws ssm put-parameter --name /events-manager/prod/DEMO_USER_SUB --type String --value "$(terraform output -raw demo_user_sub)"
 
    The password is hexadecimal on purpose: the `.env` has no quotes, so a `$` or a quote in it would break the
    compose file. Add `--overwrite` to change a value.
