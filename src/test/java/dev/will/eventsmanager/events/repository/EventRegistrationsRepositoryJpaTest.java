@@ -1,6 +1,6 @@
 package dev.will.eventsmanager.events.repository;
 
-import dev.will.eventsmanager.SharedPostgres;
+import dev.will.eventsmanager.AbstractJpaTest;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
@@ -8,11 +8,7 @@ import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.users.entity.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,14 +17,7 @@ import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class EventRegistrationsRepositoryJpaTest {
-
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry registry) {
-        SharedPostgres.register(registry);
-    }
+class EventRegistrationsRepositoryJpaTest extends AbstractJpaTest {
 
     private static final String ANA = "ana";
 

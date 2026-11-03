@@ -64,6 +64,7 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
             Long addressId = jdbcTemplate.queryForObject(
                     "SELECT address_id FROM events WHERE id = ?", Long.class, eventId);
             jdbcTemplate.update("DELETE FROM event_registrations WHERE event_id = ?", eventId);
+            jdbcTemplate.update("DELETE FROM outbox_messages WHERE message_key = ?", eventId.toString());
             jdbcTemplate.update("DELETE FROM events WHERE id = ?", eventId);
             jdbcTemplate.update("DELETE FROM event_addresses WHERE id = ?", addressId);
         }

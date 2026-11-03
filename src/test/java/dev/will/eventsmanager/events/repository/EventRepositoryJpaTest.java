@@ -1,6 +1,6 @@
 package dev.will.eventsmanager.events.repository;
 
-import dev.will.eventsmanager.SharedPostgres;
+import dev.will.eventsmanager.AbstractJpaTest;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.dto.request.EventFilter;
 import dev.will.eventsmanager.events.entity.Category;
@@ -10,29 +10,18 @@ import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class EventRepositoryJpaTest {
-
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry registry) {
-        SharedPostgres.register(registry);
-    }
+class EventRepositoryJpaTest extends AbstractJpaTest {
 
     private static final Pageable PAGEABLE = PageRequest.of(0, 20, Sort.by("schedule"));
     private static final LocalDate DAY = LocalDate.now().plusDays(30);
