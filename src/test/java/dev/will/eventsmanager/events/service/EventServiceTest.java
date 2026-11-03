@@ -20,6 +20,7 @@ import dev.will.eventsmanager.events.entity.EventAddress;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
+import dev.will.eventsmanager.events.outbox.RegistrationOutbox;
 import dev.will.eventsmanager.events.repository.EventRegistrationCount;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
@@ -74,6 +75,9 @@ class EventServiceTest {
 
     @Mock
     UserRepository userRepository;
+
+    @Mock
+    RegistrationOutbox registrationOutbox;
 
     @InjectMocks
     EventService eventService;
@@ -323,6 +327,7 @@ class EventServiceTest {
         eventService.unregisterUserFromEvent(eventId, USER_SUB);
 
         then(eventRegistrationsRepository).should().delete(registration);
+        then(registrationOutbox).should().recordCancelled(eventId, USER_SUB);
     }
 
     @Test
@@ -458,6 +463,7 @@ class EventServiceTest {
                 .hasMessageContaining("full");
 
         then(eventRegistrationsRepository).should(never()).save(any());
+        then(registrationOutbox).shouldHaveNoInteractions();
     }
 
     @Test
@@ -500,6 +506,29 @@ class EventServiceTest {
         EventRegistrationResponse result = eventService.registerUserForEvent(USER_SUB, eventId);
 
         assertThat(result).isSameAs(expected);
+        then(registrationOutbox).should().recordCreated(eventId, USER_SUB);
+    }
+
+    @Test
+    void registerUserForEvent_whenCancelledAndEventHasRoom_restoresItAndRecordsTheMessage() {
+        Long eventId = 10L;
+        User user = validUser();
+        user.setId(1L);
+        Event event = Event.builder().id(eventId).capacity(2).build();
+        EventRegistration cancelled = EventRegistration.builder()
+                .user(user).event(event).deleted(true).build();
+
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.of(event));
+        given(eventRegistrationsRepository.findByUserIdAndEventIdIncludeDeleted(1L, eventId))
+                .willReturn(Optional.of(cancelled));
+        given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(1L);
+        given(eventRegistrationsRepository.save(cancelled)).willReturn(cancelled);
+
+        eventService.registerUserForEvent(USER_SUB, eventId);
+
+        assertThat(cancelled.isDeleted()).isFalse();
+        then(registrationOutbox).should().recordCreated(eventId, USER_SUB);
     }
 
     @Test

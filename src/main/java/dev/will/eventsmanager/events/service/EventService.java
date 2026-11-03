@@ -16,6 +16,7 @@ import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.mapper.EventMapper;
 import dev.will.eventsmanager.events.mapper.EventRegistrationMapper;
+import dev.will.eventsmanager.events.outbox.RegistrationOutbox;
 import dev.will.eventsmanager.events.repository.EventRegistrationCount;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.events.repository.EventRepository;
@@ -46,6 +47,7 @@ public class EventService {
     private final EventRepository eventRepository;
     private final EventRegistrationsRepository eventRegistrationsRepository;
     private final UserRepository userRepository;
+    private final RegistrationOutbox registrationOutbox;
 
     // The key relies on EventFilter always carrying a real `from`; without it a listing cached today would be served tomorrow.
     // The distance depends on who asks, so that listing is never cached.
@@ -160,7 +162,9 @@ public class EventService {
                 ensureEventHasRoom(event);
             }
             registration.restore();
-            return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(registration));
+            EventRegistration restored = eventRegistrationsRepository.save(registration);
+            registrationOutbox.recordCreated(event.getId(), externalId);
+            return eventRegistrationMapper.toResponse(restored);
         }
 
         ensureEventHasRoom(event);
@@ -169,7 +173,9 @@ public class EventService {
         newRegistration.setUser(user);
         newRegistration.setEvent(event);
 
-        return eventRegistrationMapper.toResponse(eventRegistrationsRepository.save(newRegistration));
+        EventRegistration saved = eventRegistrationsRepository.save(newRegistration);
+        registrationOutbox.recordCreated(event.getId(), externalId);
+        return eventRegistrationMapper.toResponse(saved);
     }
 
     private void ensureEventHasRoom(Event event) {
@@ -203,5 +209,6 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Registration", eventId));
 
         eventRegistrationsRepository.delete(registration);
+        registrationOutbox.recordCancelled(event.getId(), externalId);
     }
 }
