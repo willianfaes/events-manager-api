@@ -10,3 +10,7 @@ app.cognito.hosted-ui-url=https://<domain>.auth.<region>.amazoncognito.com
 springdoc.swagger-ui.oauth.client-id=<client-id>
 # Optional, gives the demo user a profile with coordinates: `terraform output demo_user_sub` (empty skips it).
 app.demo.user-sub=
+
+# Optional, prints every SQL statement (off by default: the outbox relay queries the database every second).
+#spring.jpa.show-sql=true
+#spring.jpa.properties.hibernate.format_sql=true
