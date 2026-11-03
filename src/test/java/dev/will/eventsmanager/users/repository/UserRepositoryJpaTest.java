@@ -1,30 +1,19 @@
 package dev.will.eventsmanager.users.repository;
 
-import dev.will.eventsmanager.SharedPostgres;
+import dev.will.eventsmanager.AbstractJpaTest;
 import dev.will.eventsmanager.TestFixtures;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.users.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import static org.assertj.core.api.BDDAssertions.then;
 import static org.assertj.core.api.BDDAssertions.thenThrownBy;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserRepositoryJpaTest {
-
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry registry) {
-        SharedPostgres.register(registry);
-    }
+class UserRepositoryJpaTest extends AbstractJpaTest {
 
     @Autowired
     UserRepository userRepository;

@@ -1,18 +1,14 @@
 package dev.will.eventsmanager.events.outbox;
 
-import dev.will.eventsmanager.SharedPostgres;
+import dev.will.eventsmanager.AbstractJpaTest;
 import dev.will.eventsmanager.events.outbox.OutboxMessage.Type;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,14 +17,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class OutboxMessageRepositoryJpaTest {
-
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry registry) {
-        SharedPostgres.register(registry);
-    }
+class OutboxMessageRepositoryJpaTest extends AbstractJpaTest {
 
     private static final String PAYLOAD = "{\"eventId\":7,\"userSub\":\"ana\"}";
 
