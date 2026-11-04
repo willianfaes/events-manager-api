@@ -86,8 +86,10 @@ answers for it. The zone is created once and the registrar is pointed to it once
 
 ## Deploy
 
-One EC2 host runs the API, Postgres and Redis with `docker-compose.prod.yml`. The pipeline publishes the image to ECR
-and runs `deploy/deploy.sh` on the host through SSM: there is no SSH and the host never clones the repository.
+One EC2 host runs the API, Postgres, Redis, Kafka and the notification service with `docker-compose.prod.yml`. Each
+repository's pipeline publishes its image to ECR and runs `deploy/deploy.sh <service> <tag>` on the host through SSM:
+there is no SSH and the host never clones a repository. This pipeline also sends the compose file, the script and
+`docker/postgres/init`, so the API is deployed first; the notification service starts once its pipeline has run.
 
 First time, in this order (from this directory, in WSL):
 
