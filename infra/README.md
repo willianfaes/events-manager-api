@@ -44,8 +44,9 @@ Get a token without a browser:
 
 The deploy job in `.github/workflows/cicd.yml` signs in to AWS with the access key of the IAM user `events-ci`
 (`cicd.tf`), stored as the repository secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. OIDC would avoid
-storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the ECR
-repository and run `ssm:SendCommand` on the host.
+storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the two ECR
+repositories (the API and the notification service, whose pipeline reuses the user) and run `ssm:SendCommand` on
+the host.
 
 The key is created by hand, once, so the secret never reaches the Terraform state or the terminal. From the
 repository directory, with `aws` and `gh` logged in:

@@ -25,7 +25,7 @@ resource "aws_iam_user_policy" "ci" {
         Resource = "*"
       },
       {
-        # Built from the name, not from the repository resource, because teardown destroys the repository and
+        # Built from the names, not from the repository resources, because teardown destroys the repositories and
         # keeps this user.
         Effect = "Allow"
         Action = [
@@ -37,7 +37,10 @@ resource "aws_iam_user_policy" "ci" {
           "ecr:CompleteLayerUpload",
           "ecr:PutImage",
         ]
-        Resource = "arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/${var.name}-api"
+        Resource = [
+          for repository in values(local.ecr_repositories) :
+          "arn:aws:ecr:${var.region}:${data.aws_caller_identity.current.account_id}:repository/${repository}"
+        ]
       },
       {
         Effect   = "Allow"

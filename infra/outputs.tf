@@ -1,6 +1,6 @@
-output "ecr_repository_url" {
-  description = "Image repository: tag and push the API image here"
-  value       = aws_ecr_repository.api.repository_url
+output "ecr_repository_urls" {
+  description = "Image repositories, by service: the pipelines tag and push the images here"
+  value       = { for service, repository in aws_ecr_repository.service : service => repository.repository_url }
 }
 
 output "instance_id" {
