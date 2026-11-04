@@ -20,6 +20,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # We pass the env var here too so the healthcheck can log in
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -115,6 +116,32 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+
+  # Consumer of registration-events. To run it, clone willianfaes/events-notification-service next to this repository
+  # (the build path is ../events-notification-service) and start the stack with --profile consumer. The profile keeps
+  # the stack working for whoever cloned only the API. No port is published: it only reads from Kafka. Its database is
+  # created by docker/postgres/init on a new volume, and it logs in with the API's user.
+  events-notification:
+    build: ../events-notification-service
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/events_notification_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    profiles:
+      - consumer
 
   prometheus:
     image: prom/prometheus:v3.15.0
