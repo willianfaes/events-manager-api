@@ -108,4 +108,4 @@ jobs:
           deploy/ssm-run.sh "echo $(base64 -w0 deploy/deploy.sh) | base64 -d > /opt/events-manager/deploy.sh && chmod +x /opt/events-manager/deploy.sh"
 
       - name: Deploy
-        run: deploy/ssm-run.sh "/opt/events-manager/deploy.sh ${IMAGE_TAG}"
+        run: deploy/ssm-run.sh "/opt/events-manager/deploy.sh events-manager ${IMAGE_TAG}"
