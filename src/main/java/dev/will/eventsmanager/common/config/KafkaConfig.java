@@ -2,6 +2,7 @@ package dev.will.eventsmanager.common.config;
 
 import dev.will.eventsmanager.events.outbox.KafkaRegistrationEventPublisher;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.common.config.TopicConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -10,12 +11,14 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
 
     // Created on startup if missing. Three partitions let up to three consumers of one group read in parallel;
-    // one replica because there is a single broker (so it is not fault tolerant).
+    // one replica because there is a single broker (so it is not fault tolerant). Messages are kept forever, so a
+    // consumer can reset to offset 0 and rebuild its state; compaction would keep only the last message of each event.
     @Bean
     public NewTopic registrationEventsTopic() {
         return TopicBuilder.name(KafkaRegistrationEventPublisher.TOPIC)
                 .partitions(3)
                 .replicas(1)
+                .config(TopicConfig.RETENTION_MS_CONFIG, "-1")
                 .build();
     }
 }
