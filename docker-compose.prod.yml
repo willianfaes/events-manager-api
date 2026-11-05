@@ -2,10 +2,14 @@
 # publishes the image, and this file is copied next to the host's .env. Compared to docker-compose.yml:
 # no build, no tools/monitoring/loadtest/kafka-ui services, and only the API port is published (db, redis, kafka, the
 # notification service and the management port 8081 stay inside the compose network).
+# Memory: every service has a mem_limit (about 1.4x the peak measured under the k6 load test, with the same images and
+# the JVMs capped as on the t3.medium) and each JVM heap is about 60% of it. A service that runs out is the only one
+# restarted; without limits the kernel would pick the victim.
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    mem_limit: 256m
     environment:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME}
       POSTGRES_USER: ${DB_USER:?set DB_USER}
@@ -24,6 +28,7 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    mem_limit: 128m
     # Cache only: no persistence, memory bounded here (the app sets only the TTL).
     command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -37,6 +42,7 @@ services:
   kafka:
     image: apache/kafka:3.9.1
     restart: unless-stopped
+    mem_limit: 1g
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -52,6 +58,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # The image default (1 GB, fixed) would not fit the limit; 512 MB is plenty for this volume.
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
@@ -64,6 +72,7 @@ services:
   events-manager:
     image: ${APP_IMAGE}
     restart: unless-stopped
+    mem_limit: 850m
     ports:
       - "8080:8080"
     depends_on:
@@ -74,6 +83,7 @@ services:
       kafka:
         condition: service_healthy
     environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
       SPRING_PROFILES_ACTIVE: prod
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       SPRING_DATA_REDIS_HOST: redis
@@ -97,12 +107,14 @@ services:
   events-notification:
     image: ${NOTIFICATION_IMAGE:-}
     restart: unless-stopped
+    mem_limit: 450m
     depends_on:
       db:
         condition: service_healthy
       kafka:
         condition: service_healthy
     environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
       SPRING_PROFILES_ACTIVE: prod
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/events_notification_db
