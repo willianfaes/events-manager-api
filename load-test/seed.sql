@@ -1,10 +1,18 @@
--- Data for the load test (docker profile starts empty). Run once against events_manager_db; safe to run twice.
+-- Data for the load test (docker profile starts empty). Run it against events_manager_db before each session:
+-- the first run creates the events, later runs move them forward again, so the race never falls in the past
+-- and the listing keeps the same 1,001 upcoming events.
 DO $$
 DECLARE
     address_id BIGINT;
 BEGIN
     IF EXISTS (SELECT 1 FROM events WHERE name = 'load-test-race') THEN
-        RAISE NOTICE 'load test data already present, nothing to do';
+        -- Same days ahead as the insert below: i is 0 for the race and the suffix of load-test-event-<i>.
+        UPDATE events
+        SET schedule   = now() + ((1 + CASE WHEN name = 'load-test-race' THEN 0
+                                            ELSE substring(name FROM 'load-test-event-(\d+)$')::INT END % 90) || ' days')::interval,
+            updated_at = now()
+        WHERE name = 'load-test-race' OR name ~ '^load-test-event-\d+$';
+        RAISE NOTICE 'load test data already present, events moved forward';
         RETURN;
     END IF;
 
