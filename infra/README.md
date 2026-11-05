@@ -48,18 +48,23 @@ storing a key, but the organization SCP denies creating the OIDC provider. The u
 repositories (the API and the notification service, whose pipeline reuses the user) and run `ssm:SendCommand` on
 the host.
 
-The key is created by hand, once, so the secret never reaches the Terraform state or the terminal. From the
-repository directory, with `aws` and `gh` logged in:
+Each repository has its own key of this user, because a GitHub secret cannot be read back to copy it: the first one
+in this repository, the second in `willianfaes/events-notification-service`. A key is created by hand, so the secret
+never reaches the Terraform state or the terminal. With `aws` and `gh` logged in (in WSL), and `REPO` set to the
+repository that gets the key:
 
     read -r ID SECRET < <(aws iam create-access-key --user-name events-ci \
       --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
-    printf %s "$ID" | gh secret set AWS_ACCESS_KEY_ID
-    printf %s "$SECRET" | gh secret set AWS_SECRET_ACCESS_KEY
+    printf %s "$ID" | gh secret set AWS_ACCESS_KEY_ID -R "$REPO"
+    printf %s "$SECRET" | gh secret set AWS_SECRET_ACCESS_KEY -R "$REPO"
     unset ID SECRET
 
-To rotate it (a user has at most two keys): run the commands above, check that a deploy works, then delete the
-old key with `aws iam list-access-keys --user-name events-ci` and
-`aws iam delete-access-key --user-name events-ci --access-key-id <old-key-id>`.
+To rotate one: a user has at most two keys and both are in use, so delete the old key first
+(`aws iam list-access-keys --user-name events-ci` shows the creation dates: the older key belongs to this repository
+until the first rotation; note which is which after each one, then
+`aws iam delete-access-key --user-name events-ci --access-key-id <old-key-id>`), run the commands above for the same
+repository and check that its next deploy works. Between the two steps that repository cannot deploy; the other one
+is not affected.
 
 ## Domain
 
@@ -112,6 +117,10 @@ First time, in this order (from this directory, in WSL):
    ready when this lists it as `Online`:
 
        aws ssm describe-instance-information --query 'InstanceInformationList[].[InstanceId,PingStatus]' --output text
+
+   If it is not listed after 5 minutes, reboot it (`aws ec2 reboot-instances --instance-ids <id>`, the id is
+   `terraform output instance_id`); it shows up within a minute. The instance profile is created seconds before the
+   host, so the SSM agent can start before the role is usable and then waits a long time before trying again.
 3. **Pipeline.** The deploy job only runs when the repository variable is `true`, and the workflow only runs on a push
    or a pull request, so turn the variable on and re-run the last run on `main`:
 
