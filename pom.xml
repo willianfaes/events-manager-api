@@ -229,9 +229,14 @@
 					</dependency>
 				</dependencies>
 				<configuration>
-					<targetClasses><param>dev.will.eventsmanager.*Service</param></targetClasses>
+					<targetClasses>
+						<param>dev.will.eventsmanager.*Service</param>
+						<param>dev.will.eventsmanager.events.entity.Event</param>
+						<param>dev.will.eventsmanager.events.entity.EventRegistration</param>
+					</targetClasses>
 					<excludedTestClasses>
-						<param>*IT</param>
+						<param>*IntegrationTest</param>
+						<param>*JpaTest</param>
 						<param>*ApplicationTests</param>
 					</excludedTestClasses>
 				</configuration>

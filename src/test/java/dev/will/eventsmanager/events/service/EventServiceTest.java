@@ -28,6 +28,7 @@ import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -506,6 +507,10 @@ class EventServiceTest {
         EventRegistrationResponse result = eventService.registerUserForEvent(USER_SUB, eventId);
 
         assertThat(result).isSameAs(expected);
+        ArgumentCaptor<EventRegistration> captor = ArgumentCaptor.forClass(EventRegistration.class);
+        then(eventRegistrationsRepository).should().save(captor.capture());
+        assertThat(captor.getValue().getUser()).isSameAs(user);
+        assertThat(captor.getValue().getEvent()).isSameAs(event);
         then(registrationOutbox).should().recordCreated(eventId, USER_SUB);
     }
 
@@ -524,9 +529,12 @@ class EventServiceTest {
                 .willReturn(Optional.of(cancelled));
         given(eventRegistrationsRepository.countByEventId(eventId)).willReturn(1L);
         given(eventRegistrationsRepository.save(cancelled)).willReturn(cancelled);
+        EventRegistrationResponse expected = new EventRegistrationResponse(5L, eventId);
+        given(eventRegistrationMapper.toResponse(cancelled)).willReturn(expected);
 
-        eventService.registerUserForEvent(USER_SUB, eventId);
+        EventRegistrationResponse result = eventService.registerUserForEvent(USER_SUB, eventId);
 
+        assertThat(result).isSameAs(expected);
         assertThat(cancelled.isDeleted()).isFalse();
         then(registrationOutbox).should().recordCreated(eventId, USER_SUB);
     }
