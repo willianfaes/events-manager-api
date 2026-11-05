@@ -1,17 +1,24 @@
 # Production stack for the single EC2 host. The host never clones the repo: the pipeline builds and
 # publishes the image, and this file is copied next to the host's .env. Compared to docker-compose.yml:
-# no build, no tools/monitoring/loadtest services, and only the API port is published (db, redis and the
-# management port 8081 stay inside the compose network).
+# no build, no tools/monitoring/loadtest/kafka-ui services, and only the API port is published (db, redis, kafka, the
+# notification service and the management port 8081 stay inside the compose network).
+# Memory: every service has a mem_limit (about 1.4x the peak measured under the k6 load test, with the same images and
+# the JVMs capped as on the t3.medium) and each JVM heap is about 60% of it. A service that runs out is the only one
+# restarted; without limits the kernel would pick the victim.
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    mem_limit: 256m
     environment:
       POSTGRES_DB: ${DB_NAME:?set DB_NAME}
       POSTGRES_USER: ${DB_USER:?set DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Creates the notification service's database, only on a new volume. The pipeline copies docker/postgres/init
+      # to this folder on the host.
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -21,6 +28,7 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    mem_limit: 128m
     # Cache only: no persistence, memory bounded here (the app sets only the TTL).
     command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
@@ -29,9 +37,42 @@ services:
       timeout: 3s
       retries: 5
 
+  # One broker in KRaft mode, reachable only inside the compose network (one listener, no published port). Unlike the
+  # local compose there is no second listener for an app run from an IDE.
+  kafka:
+    image: apache/kafka:3.9.1
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: DOCKER://:19092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: DOCKER://kafka:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: DOCKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # A single broker cannot keep more than one copy of Kafka's own topics.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # The image default (1 GB, fixed) would not fit the limit; 512 MB is plenty for this volume.
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:19092 > /dev/null"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
   events-manager:
     image: ${APP_IMAGE}
     restart: unless-stopped
+    mem_limit: 850m
     ports:
       - "8080:8080"
     depends_on:
@@ -39,8 +80,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
       SPRING_PROFILES_ACTIVE: prod
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       SPRING_DATA_REDIS_HOST: redis
       SPRING_CACHE_TYPE: redis
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME}
@@ -57,5 +102,33 @@ services:
       retries: 5
       start_period: 40s
 
+  # Consumer of registration-events, published by its own repository's pipeline. deploy.sh turns the consumer profile
+  # on only once the host knows its image, so the API can be deployed before the first consumer image exists.
+  events-notification:
+    image: ${NOTIFICATION_IMAGE:-}
+    restart: unless-stopped
+    mem_limit: 450m
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/events_notification_db
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    profiles:
+      - consumer
+
 volumes:
   postgres_data:
+  kafka_data:

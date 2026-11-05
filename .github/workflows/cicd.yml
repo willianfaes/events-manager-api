@@ -102,10 +102,12 @@ jobs:
             docker push "${REGISTRY}/${IMAGE_REPOSITORY}:${TAG}"
           fi
 
-      - name: Send the compose file and the deploy script to the host
+      # Postgres runs the init scripts only on a new volume (they create the notification service's database).
+      - name: Send the compose file, the deploy script and the database init scripts to the host
         run: |
           deploy/ssm-run.sh "echo $(base64 -w0 docker-compose.prod.yml) | base64 -d > /opt/events-manager/docker-compose.prod.yml"
           deploy/ssm-run.sh "echo $(base64 -w0 deploy/deploy.sh) | base64 -d > /opt/events-manager/deploy.sh && chmod +x /opt/events-manager/deploy.sh"
+          deploy/ssm-run.sh "mkdir -p /opt/events-manager/postgres-init && echo $(tar -czf - -C docker/postgres/init . | base64 -w0) | base64 -d | tar -xzf - -C /opt/events-manager/postgres-init"
 
       - name: Deploy
-        run: deploy/ssm-run.sh "/opt/events-manager/deploy.sh ${IMAGE_TAG}"
+        run: deploy/ssm-run.sh "/opt/events-manager/deploy.sh events-manager ${IMAGE_TAG}"

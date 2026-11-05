@@ -44,8 +44,9 @@ Get a token without a browser:
 
 The deploy job in `.github/workflows/cicd.yml` signs in to AWS with the access key of the IAM user `events-ci`
 (`cicd.tf`), stored as the repository secrets `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. OIDC would avoid
-storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the ECR
-repository and run `ssm:SendCommand` on the host.
+storing a key, but the organization SCP denies creating the OIDC provider. The user can only push to the two ECR
+repositories (the API and the notification service, whose pipeline reuses the user) and run `ssm:SendCommand` on
+the host.
 
 The key is created by hand, once, so the secret never reaches the Terraform state or the terminal. From the
 repository directory, with `aws` and `gh` logged in:
@@ -85,8 +86,10 @@ answers for it. The zone is created once and the registrar is pointed to it once
 
 ## Deploy
 
-One EC2 host runs the API, Postgres and Redis with `docker-compose.prod.yml`. The pipeline publishes the image to ECR
-and runs `deploy/deploy.sh` on the host through SSM: there is no SSH and the host never clones the repository.
+One EC2 host runs the API, Postgres, Redis, Kafka and the notification service with `docker-compose.prod.yml`. Each
+repository's pipeline publishes its image to ECR and runs `deploy/deploy.sh <service> <tag>` on the host through SSM:
+there is no SSH and the host never clones a repository. This pipeline also sends the compose file, the script and
+`docker/postgres/init`, so the API is deployed first; the notification service starts once its pipeline has run.
 
 First time, in this order (from this directory, in WSL):
 
