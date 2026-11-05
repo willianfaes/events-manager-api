@@ -130,7 +130,7 @@ A [k6](https://k6.io) script in `load-test/k6/script.js` exercises two things:
 
 The 200 users are real Cognito users: create them once with `load_test_password` in `infra/terraform.tfvars` and `terraform apply -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test` (see `infra/README.md`), and put the same password in `LOAD_TEST_PASSWORD` in `.env`, next to `COGNITO_ISSUER_URI` and `COGNITO_CLIENT_ID`. Before the test starts, k6 logs each one in through the Cognito API and creates its profile with `POST /users/me`, so the run needs internet access.
 
-The Docker database starts empty, so create the test events once (1,000 events plus the 50-spot one):
+The Docker database starts empty, so run the seed before each session: the first run creates the test events (1,000 events plus the 50-spot one), and later runs move them forward again, so the race event never falls in the past:
 
 ```bash
 docker compose --profile monitoring up -d --build
