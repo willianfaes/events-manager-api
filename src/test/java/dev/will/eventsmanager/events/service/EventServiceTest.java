@@ -7,6 +7,7 @@ import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
 import dev.will.eventsmanager.common.exception.EventFullException;
 import dev.will.eventsmanager.common.exception.EventHasActiveRegistrationsException;
+import dev.will.eventsmanager.common.exception.ProfileWithoutCoordinatesException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.events.dto.request.EventAddressRequest;
 import dev.will.eventsmanager.events.dto.request.EventCreateRequest;
@@ -61,6 +62,8 @@ import static org.mockito.ArgumentMatchers.eq;
 class EventServiceTest {
 
     private static final Coordinates COORDINATES = new Coordinates(45.4390, 10.9942);
+    private static final Coordinates MILANO = new Coordinates(45.4642, 9.1900);
+    private static final EventFilter WITHIN_200_KM = new EventFilter(null, null, null, 200.0);
 
     @Mock
     EventRepository eventRepository;
@@ -156,6 +159,44 @@ class EventServiceTest {
         assertThat(result.totalElements()).isZero();
         assertThat(result.totalPages()).isZero();
         assertThat(result.last()).isTrue();
+    }
+
+    @Test
+    void findAllEvents_withMaxDistance_returnsTheDistanceFromTheProfileRoundedToOneDecimal() {
+        User profile = validUser();
+        profile.getAddress().locateAt(MILANO);
+        Event eventInVerona = Event.builder().id(1L).capacity(10)
+                .address(EventAddress.builder().latitude(COORDINATES.latitude()).longitude(COORDINATES.longitude()).build())
+                .build();
+        Pageable pageable = PageRequest.of(0, 10);
+        EventResponse expected = EventResponse.builder().build();
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(profile));
+        given(eventRepository.findAll(ArgumentMatchers.<Specification<Event>>any(), eq(pageable)))
+                .willReturn(new PageImpl<>(List.of(eventInVerona), pageable, 1));
+        // Milano to Verona is 140.76 km by Haversine.
+        given(eventMapper.toResponse(eventInVerona, 10, 140.8)).willReturn(expected);
+
+        PageResponse<EventResponse> result = eventService.findAllEvents(pageable, WITHIN_200_KM, USER_SUB);
+
+        assertThat(result.content()).containsExactly(expected);
+    }
+
+    @Test
+    void findAllEvents_withMaxDistance_whenTheProfileHasNoCoordinates_throwsAndDoesNotQuery() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(validUser()));
+
+        assertThatThrownBy(() -> eventService.findAllEvents(PageRequest.of(0, 10), WITHIN_200_KM, USER_SUB))
+                .isInstanceOf(ProfileWithoutCoordinatesException.class);
+        then(eventRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void findAllEvents_withMaxDistance_whenThereIsNoProfile_throwsResourceNotFound() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.findAllEvents(PageRequest.of(0, 10), WITHIN_200_KM, USER_SUB))
+                .isInstanceOf(ResourceNotFoundException.class);
+        then(eventRepository).shouldHaveNoInteractions();
     }
 
     @Test
@@ -444,6 +485,54 @@ class EventServiceTest {
                 .hasMessageContaining("Event");
 
         then(eventRegistrationsRepository).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void registerUserForEvent_whenThereIsNoProfile_throwsResourceNotFoundBeforeLockingTheEvent() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_SUB, 10L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User");
+
+        then(eventRepository).shouldHaveNoInteractions();
+        then(registrationOutbox).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void registerUserForEvent_whenEventDoesNotExist_throwsResourceNotFoundException() {
+        Long eventId = 99L;
+        User user = validUser();
+        user.setId(1L);
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
+        given(eventRepository.findByIdForUpdate(eventId)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.registerUserForEvent(USER_SUB, eventId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Event");
+
+        then(eventRegistrationsRepository).should(never()).save(any());
+        then(registrationOutbox).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void findUserRegistration_whenThereIsNoProfile_throwsResourceNotFoundException() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.findUserRegistration(10L, USER_SUB))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User");
+    }
+
+    @Test
+    void unregisterUserFromEvent_whenThereIsNoProfile_throwsResourceNotFoundException() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> eventService.unregisterUserFromEvent(10L, USER_SUB))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("User");
+
+        then(eventRegistrationsRepository).should(never()).delete(any());
     }
 
     @Test
