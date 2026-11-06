@@ -63,6 +63,7 @@ class SecurityAccessRulesWebSliceTest {
             "DELETE,/events/1/registrations",
             "POST,/users/me",
             "GET,/users/me",
+            "PUT,/users/me",
             "GET,/users/me/registrations",
             "GET,/users/me/registrations/events",
             "POST,/admin/events",

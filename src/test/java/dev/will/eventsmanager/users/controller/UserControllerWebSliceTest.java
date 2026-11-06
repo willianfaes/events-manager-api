@@ -41,6 +41,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -260,6 +261,46 @@ class UserControllerWebSliceTest {
         given(userService.getProfile(USER_SUB)).willThrow(new ResourceNotFoundException("Profile", USER_SUB));
 
         mockMvc.perform(get("/users/me").with(authenticatedUser()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should return 200 with the updated profile")
+    void updateProfile_should_return_the_updated_profile() throws Exception {
+        given(userGeocodingCoordinator.updateProfile(USER_SUB, PROFILE_REQUEST)).willReturn(new ProfileResponse("Demo User", 30,
+                new UserAddressResponse(1L, "Via del Corso 1", null, "Rome", null, "00186", "IT")));
+
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist("Location"))
+                .andExpect(jsonPath("$.name").value("Demo User"))
+                .andExpect(jsonPath("$.address.city").value("Rome"));
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should return 400 when the address is missing")
+    void updateProfile_should_return_bad_request_when_address_is_missing() throws Exception {
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "Demo User", "age": 30}
+                                """)
+                        .with(authenticatedUser()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("address")));
+
+        then(userGeocodingCoordinator).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should return 404 when the sub has no profile yet")
+    void updateProfile_should_return_not_found_without_profile() throws Exception {
+        given(userGeocodingCoordinator.updateProfile(USER_SUB, PROFILE_REQUEST))
+                .willThrow(new ResourceNotFoundException("Profile", USER_SUB));
+
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
     }

@@ -51,4 +51,20 @@ class UserGeocodingCoordinatorTest {
 
         then(coordinator.createProfile(USER_SUB, REQUEST)).isEqualTo(EXPECTED);
     }
+
+    @Test
+    void updateProfile_geocodesOnlyTheAreaAndPassesTheCoordinatesToTheService() {
+        given(geocoder.locate(AREA)).willReturn(Optional.of(COORDINATES));
+        given(userService.updateProfile(USER_SUB, REQUEST, COORDINATES)).willReturn(EXPECTED);
+
+        then(coordinator.updateProfile(USER_SUB, REQUEST)).isEqualTo(EXPECTED);
+    }
+
+    @Test
+    void updateProfile_whenThereAreNoCoordinates_passesNullToTheService() {
+        given(geocoder.locate(AREA)).willReturn(Optional.empty());
+        given(userService.updateProfile(USER_SUB, REQUEST, null)).willReturn(EXPECTED);
+
+        then(coordinator.updateProfile(USER_SUB, REQUEST)).isEqualTo(EXPECTED);
+    }
 }
