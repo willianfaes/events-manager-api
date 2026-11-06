@@ -1,15 +1,19 @@
 package dev.will.eventsmanager.users.service;
 
+import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
+import dev.will.eventsmanager.events.entity.EventRegistration;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
 import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
+import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
 import dev.will.eventsmanager.users.entity.User;
 import dev.will.eventsmanager.users.entity.UserAddress;
+import dev.will.eventsmanager.users.mapper.MyRegistrationMapper;
 import dev.will.eventsmanager.users.mapper.ProfileMapper;
 import dev.will.eventsmanager.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -17,6 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +53,9 @@ class UserServiceTest {
     @Mock
     ProfileMapper profileMapper;
 
+    @Mock
+    MyRegistrationMapper myRegistrationMapper;
+
     @InjectMocks
     UserService userService;
 
@@ -58,6 +68,23 @@ class UserServiceTest {
         RegisteredEventsResponse result = userService.findRegisteredEventIds(USER_SUB, requested);
 
         assertThat(result.eventIds()).containsExactly(2L, 5L);
+    }
+
+    @Test
+    void getUserRegisteredEvents_mapsTheRepositoryPageKeepingItsPaging() {
+        Pageable pageable = PageRequest.of(1, 2);
+        EventRegistration registration = EventRegistration.builder().id(7L).build();
+        MyRegistrationResponse mapped = MyRegistrationResponse.builder().registrationId(7L).build();
+        given(eventRegistrationsRepository.findByUserExternalIdWithEvent(USER_SUB, pageable))
+                .willReturn(new PageImpl<>(List.of(registration), pageable, 3));
+        given(myRegistrationMapper.toMyRegistrationResponse(registration)).willReturn(mapped);
+
+        PageResponse<MyRegistrationResponse> result = userService.getUserRegisteredEvents(USER_SUB, pageable);
+
+        assertThat(result.content()).containsExactly(mapped);
+        assertThat(result.page()).isEqualTo(1);
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.totalElements()).isEqualTo(3);
     }
 
     @Test
