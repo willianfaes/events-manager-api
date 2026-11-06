@@ -1,6 +1,8 @@
 package dev.will.eventsmanager.users.controller;
 
 import dev.will.eventsmanager.AbstractIntegrationTest;
+import dev.will.eventsmanager.common.geocoding.Coordinates;
+import dev.will.eventsmanager.common.geocoding.Geocoder;
 import dev.will.eventsmanager.events.entity.Category;
 import dev.will.eventsmanager.events.entity.Event;
 import dev.will.eventsmanager.events.entity.EventAddress;
@@ -14,24 +16,30 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static dev.will.eventsmanager.TestFixtures.subOf;
 import static dev.will.eventsmanager.TestFixtures.authenticatedUser;
 import static dev.will.eventsmanager.TestFixtures.validUser;
 import static org.assertj.core.api.BDDAssertions.then;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Transactional
 class UserControllerIntegrationTest extends AbstractIntegrationTest  {
     private static final LocalDateTime DEFAULT_FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);
+    private static final Coordinates ROME = new Coordinates(41.9028, 12.4964);
     private static final String PROFILE_JSON = """
             {"name": "Demo User", "age": 30, "address": {"street": "Via del Corso 1", "city": "Rome",
              "postalCode": "00186", "countryCode": "IT"}}
@@ -51,6 +59,10 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
 
     @Autowired
     EventRegistrationsRepository registrationsRepository;
+
+    // Tests never reach Nominatim; without this mock every lookup fails (closed port in the test config).
+    @MockitoBean
+    Geocoder geocoder;
 
 
     @Test
@@ -143,6 +155,44 @@ class UserControllerIntegrationTest extends AbstractIntegrationTest  {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Test User"))
                 .andExpect(jsonPath("$.address.city").value("Sample City"));
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should replace the name, age and address of the saved profile")
+    void updateProfile_shouldReplaceTheSavedProfile() throws Exception {
+        userRepository.save(validUser());
+        given(geocoder.locate(anyString())).willReturn(Optional.of(ROME));
+
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk());
+        entityManager.flush();
+        entityManager.clear();
+
+        User saved = userRepository.findByExternalId(USER_SUB).orElseThrow();
+        then(saved.getName()).isEqualTo("Demo User");
+        then(saved.getAge()).isEqualTo(30);
+        then(saved.getAddress().getCity()).isEqualTo("Rome");
+        then(saved.getAddress().coordinates()).isEqualTo(ROME);
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should unlock the distance filter for a profile that had no coordinates")
+    void updateProfile_shouldUnlockTheDistanceFilterForAProfileWithoutCoordinates() throws Exception {
+        userRepository.save(validUser());
+        entityManager.flush();
+        mockMvc.perform(get("/events").param("maxDistanceKm", "200").with(authenticatedUser()))
+                .andExpect(status().isConflict());
+        given(geocoder.locate(anyString())).willReturn(Optional.of(ROME));
+
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isOk());
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/events").param("maxDistanceKm", "200").with(authenticatedUser()))
+                .andExpect(status().isOk());
     }
 
     private Event saveEvent(String name) {

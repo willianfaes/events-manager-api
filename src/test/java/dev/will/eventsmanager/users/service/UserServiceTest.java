@@ -4,7 +4,7 @@ import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
-import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
@@ -28,10 +28,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+
+    private static final Coordinates MILANO = new Coordinates(45.4642, 9.1900);
+    private static final Coordinates ROME = new Coordinates(41.9028, 12.4964);
 
     @Mock
     EventRegistrationsRepository eventRegistrationsRepository;
@@ -58,7 +62,7 @@ class UserServiceTest {
 
     @Test
     void createProfile_linksTheNewProfileToTheSub() {
-        CreateProfileRequest request = profileRequest();
+        ProfileRequest request = profileRequest();
         User profile = User.builder().name("Demo User").address(UserAddress.builder().build()).build();
         ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
         given(userRepository.existsByExternalId(USER_SUB)).willReturn(false);
@@ -100,8 +104,63 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    private static CreateProfileRequest profileRequest() {
-        return new CreateProfileRequest("Demo User", 30,
+    @Test
+    void updateProfile_appliesTheRequestAndSavesTheNewCoordinates() {
+        ProfileRequest request = profileRequest();
+        User profile = profileInMilano();
+        ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(profile));
+        given(profileMapper.toResponse(profile)).willReturn(expected);
+
+        ProfileResponse result = userService.updateProfile(USER_SUB, request, ROME);
+
+        assertThat(result).isEqualTo(expected);
+        then(profileMapper).should().updateEntity(request, profile);
+        assertThat(profile.getAddress().coordinates()).isEqualTo(ROME);
+    }
+
+    @Test
+    void updateProfile_whenTheLookupFailsOnTheSameArea_keepsTheCoordinates() {
+        User profile = profileInMilano();
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(profile));
+
+        userService.updateProfile(USER_SUB, profileRequest(), null);
+
+        assertThat(profile.getAddress().coordinates()).isEqualTo(MILANO);
+    }
+
+    @Test
+    void updateProfile_whenTheLookupFailsOnANewArea_clearsTheCoordinates() {
+        ProfileRequest request = profileRequest();
+        User profile = profileInMilano();
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(profile));
+        willAnswer(invocation -> {
+            profile.getAddress().setCity("Rome");
+            return null;
+        }).given(profileMapper).updateEntity(request, profile);
+
+        userService.updateProfile(USER_SUB, request, null);
+
+        assertThat(profile.getAddress().coordinates()).isNull();
+    }
+
+    @Test
+    void updateProfile_throwsNotFoundWhenTheSubHasNoProfile() {
+        given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.updateProfile(USER_SUB, profileRequest(), ROME))
+                .isInstanceOf(ResourceNotFoundException.class);
+        then(profileMapper).should(never()).updateEntity(any(), any());
+    }
+
+    private static User profileInMilano() {
+        UserAddress address = UserAddress.builder().postalCode("20121").city("Milano").countryCode("IT").build();
+        address.locateAt(MILANO);
+        return User.builder().name("Demo User").address(address).build();
+    }
+
+    private static ProfileRequest profileRequest() {
+        return new ProfileRequest("Demo User", 30,
                 new UserAddressRequest("Via del Corso 1", null, "Rome", null, "00186", "IT"));
     }
 }
