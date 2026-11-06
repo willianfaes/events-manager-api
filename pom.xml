@@ -234,6 +234,7 @@
 						<param>dev.will.eventsmanager.events.entity.Event</param>
 						<param>dev.will.eventsmanager.events.entity.EventRegistration</param>
 						<param>dev.will.eventsmanager.events.entity.EventAddress</param>
+						<param>dev.will.eventsmanager.users.entity.UserAddress</param>
 					</targetClasses>
 					<excludedTestClasses>
 						<param>*IntegrationTest</param>
