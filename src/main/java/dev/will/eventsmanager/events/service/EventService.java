@@ -119,8 +119,9 @@ public class EventService {
             throw new CapacityBelowRegistrationsException(activeRegistrations);
         }
 
+        List<String> geocodedFieldsBefore = event.getAddress().geocodedFields();
         eventMapper.updateEntity(request, event);
-        event.getAddress().locateAt(coordinates);
+        event.getAddress().relocate(coordinates, geocodedFieldsBefore);
         return eventMapper.toResponse(event, event.remainingSpots(activeRegistrations));
     }
 

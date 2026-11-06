@@ -96,15 +96,28 @@ class EventGeocodingIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /admin/events/{eventId} - should clear the coordinates when the new address has none")
-    void updateEvent_whenThereAreNoCoordinates_clearsThem() throws Exception {
+    @DisplayName("PUT /admin/events/{eventId} - should keep the coordinates when the lookup fails on the same address")
+    void updateEvent_whenThereAreNoCoordinatesForTheSameAddress_keepsThem() throws Exception {
         Long eventId = createEventInVerona();
         given(geocoder.locate(anyString())).willReturn(Optional.empty());
 
         mockMvc.perform(put("/admin/events/{eventId}", eventId).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isOk());
 
-        then(reloadedEvent(eventId).getAddress().getLatitude()).isNull();
+        then(reloadedEvent(eventId).getAddress().coordinates()).isEqualTo(VERONA);
+    }
+
+    @Test
+    @DisplayName("PUT /admin/events/{eventId} - should clear the coordinates when the lookup fails on a new address")
+    void updateEvent_whenThereAreNoCoordinatesForANewAddress_clearsThem() throws Exception {
+        Long eventId = createEventInVerona();
+        given(geocoder.locate(anyString())).willReturn(Optional.empty());
+
+        mockMvc.perform(put("/admin/events/{eventId}", eventId).contentType(MediaType.APPLICATION_JSON)
+                        .content(BODY.replace("Piazza Bra 1", "Via Mazzini 10")))
+                .andExpect(status().isOk());
+
+        then(reloadedEvent(eventId).getAddress().coordinates()).isNull();
     }
 
     private Long createEventInVerona() throws Exception {
