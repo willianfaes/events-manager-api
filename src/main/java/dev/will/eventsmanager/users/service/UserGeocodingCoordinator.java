@@ -19,6 +19,10 @@ public class UserGeocodingCoordinator {
         return userService.createProfile(externalId, request, locate(request.address()));
     }
 
+    public ProfileResponse updateProfile(String externalId, ProfileRequest request) {
+        return userService.updateProfile(externalId, request, locate(request.address()));
+    }
+
     // No street: the distance only needs the area, and the home address never leaves the API.
     private Coordinates locate(UserAddressRequest address) {
         String area = "%s %s, %s".formatted(address.postalCode(), address.city(), address.countryCode());

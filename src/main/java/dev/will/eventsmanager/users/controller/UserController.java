@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -72,6 +73,24 @@ public class UserController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<ProfileResponse> getProfile(Principal principal) {
         return ResponseEntity.ok(userService.getProfile(principal.getName()));
+    }
+
+    @PutMapping("/me")
+    @Operation(
+            summary = "Update my profile",
+            description = "Replaces the name, age and address of the authenticated user's profile. "
+                    + "If the area cannot be geocoded, the coordinates are kept when postal code, city and country "
+                    + "did not change, and cleared otherwise.")
+    @ApiResponse(responseCode = "200", description = "The profile has been updated")
+    @ApiResponse(responseCode = "400", description = "Invalid body",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "404", description = "The user has no profile yet; create it with POST /users/me",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    public ResponseEntity<ProfileResponse> updateProfile(
+            Principal principal,
+            @RequestBody @Valid ProfileRequest request
+    ) {
+        return ResponseEntity.ok(userGeocodingCoordinator.updateProfile(principal.getName(), request));
     }
 
     @GetMapping("/me/registrations")

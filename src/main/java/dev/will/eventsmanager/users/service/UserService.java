@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 
 @RequiredArgsConstructor
@@ -45,6 +46,16 @@ public class UserService {
     public ProfileResponse getProfile(String externalId) {
         User profile = userRepository.findByExternalId(externalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profile", externalId));
+        return profileMapper.toResponse(profile);
+    }
+
+    public ProfileResponse updateProfile(String externalId, ProfileRequest request, Coordinates coordinates) {
+        User profile = userRepository.findByExternalId(externalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile", externalId));
+
+        List<String> geocodedFieldsBefore = profile.getAddress().geocodedFields();
+        profileMapper.updateEntity(request, profile);
+        profile.getAddress().relocate(coordinates, geocodedFieldsBefore);
         return profileMapper.toResponse(profile);
     }
 
