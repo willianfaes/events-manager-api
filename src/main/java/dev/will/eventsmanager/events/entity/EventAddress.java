@@ -6,6 +6,9 @@ import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Entity
 @Table(name = "event_addresses")
 @SQLDelete(sql = "UPDATE event_addresses SET is_deleted = true WHERE id=?")
@@ -55,6 +58,19 @@ public class EventAddress {
     public void locateAt(Coordinates coordinates) {
         this.latitude = coordinates == null ? null : coordinates.latitude();
         this.longitude = coordinates == null ? null : coordinates.longitude();
+    }
+
+    // The fields the geocoding lookup reads; complement, venue and state do not move the point.
+    public List<String> geocodedFields() {
+        return Arrays.asList(street, postalCode, city, countryCode);
+    }
+
+    // A failed lookup (null) keeps the old point when the geocoded fields did not change: it is still the right place.
+    public void relocate(Coordinates coordinates, List<String> fieldsBefore) {
+        if (coordinates == null && fieldsBefore.equals(geocodedFields())) {
+            return;
+        }
+        locateAt(coordinates);
     }
 
     public Coordinates coordinates() {
