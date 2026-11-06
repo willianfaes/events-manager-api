@@ -4,7 +4,7 @@ import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.events.repository.EventRegistrationsRepository;
-import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
@@ -58,7 +58,7 @@ class UserServiceTest {
 
     @Test
     void createProfile_linksTheNewProfileToTheSub() {
-        CreateProfileRequest request = profileRequest();
+        ProfileRequest request = profileRequest();
         User profile = User.builder().name("Demo User").address(UserAddress.builder().build()).build();
         ProfileResponse expected = new ProfileResponse("Demo User", 30, null);
         given(userRepository.existsByExternalId(USER_SUB)).willReturn(false);
@@ -100,8 +100,8 @@ class UserServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
-    private static CreateProfileRequest profileRequest() {
-        return new CreateProfileRequest("Demo User", 30,
+    private static ProfileRequest profileRequest() {
+        return new ProfileRequest("Demo User", 30,
                 new UserAddressRequest("Via del Corso 1", null, "Rome", null, "00186", "IT"));
     }
 }

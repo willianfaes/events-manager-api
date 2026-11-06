@@ -5,7 +5,7 @@ import dev.will.eventsmanager.common.docs.Authenticated;
 import dev.will.eventsmanager.common.exception.ErrorResponse;
 import dev.will.eventsmanager.common.pagination.PageRequests;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
-import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
 import dev.will.eventsmanager.users.dto.response.RegisteredEventsResponse;
@@ -58,7 +58,7 @@ public class UserController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<ProfileResponse> createProfile(
             Principal principal,
-            @RequestBody @Valid CreateProfileRequest request
+            @RequestBody @Valid ProfileRequest request
     ) {
         ProfileResponse profile = userGeocodingCoordinator.createProfile(principal.getName(), request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();

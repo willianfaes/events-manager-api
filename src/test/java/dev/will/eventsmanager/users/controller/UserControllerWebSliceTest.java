@@ -6,7 +6,7 @@ import dev.will.eventsmanager.common.PageResponse;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
-import dev.will.eventsmanager.users.dto.request.CreateProfileRequest;
+import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.EventSummaryResponse;
 import dev.will.eventsmanager.users.dto.response.MyRegistrationResponse;
@@ -55,7 +55,7 @@ class UserControllerWebSliceTest {
             {"name": "Demo User", "age": 30, "address": {"street": "Via del Corso 1", "city": "Rome",
              "postalCode": "00186", "countryCode": "IT"}}
             """;
-    private static final CreateProfileRequest PROFILE_REQUEST = new CreateProfileRequest("Demo User", 30,
+    private static final ProfileRequest PROFILE_REQUEST = new ProfileRequest("Demo User", 30,
             new UserAddressRequest("Via del Corso 1", null, "Rome", null, "00186", "IT"));
 
     @Autowired
