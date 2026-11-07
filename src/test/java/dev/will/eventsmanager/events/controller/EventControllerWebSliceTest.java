@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.events.controller;
 
+import dev.will.eventsmanager.auth.config.RestAccessDeniedHandler;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.exception.AlreadyRegisteredException;
@@ -40,7 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Who may call these routes (401 without a token) is tested once, for every route, in SecurityAccessRulesWebSliceTest;
 // the tests here assume a signed-in user and cover what each route does.
 @WebMvcTest(EventController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class EventControllerWebSliceTest {
 
     @Autowired

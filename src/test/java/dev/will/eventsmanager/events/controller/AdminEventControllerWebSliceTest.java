@@ -1,6 +1,7 @@
 package dev.will.eventsmanager.events.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.will.eventsmanager.auth.config.RestAccessDeniedHandler;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.exception.CapacityBelowRegistrationsException;
@@ -47,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Who may call these routes (401 without a token, 403 without the ADMIN role) is tested once, for every route, in
 // SecurityAccessRulesWebSliceTest; the tests here assume an ADMIN and cover what each route does.
 @WebMvcTest(AdminEventController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class AdminEventControllerWebSliceTest {
 
     private static final LocalDateTime DEFAULT_FUTURE_SCHEDULE = LocalDateTime.of(2126, 10, 1, 10, 0);

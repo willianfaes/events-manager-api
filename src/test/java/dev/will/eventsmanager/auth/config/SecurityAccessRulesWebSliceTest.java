@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // The access rules (who needs a token, who needs which role) are tested here, once, over every controller; the
 // controller slices only test what their routes do. A widened permitAll or a route left open must fail a test here.
 @WebMvcTest
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class SecurityAccessRulesWebSliceTest {
 
     @Autowired

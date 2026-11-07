@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.common.exception;
 
+import dev.will.eventsmanager.auth.config.RestAccessDeniedHandler;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GlobalExceptionHandler.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class GlobalExceptionHandlerWebSliceTest {
 
     @Autowired
