@@ -92,7 +92,10 @@ class SecurityAccessRulesWebSliceTest {
                         .header("Authorization", "Bearer user-token")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("Access denied"))
+                .andExpect(jsonPath("$.path").value(path));
 
         BDDMockito.then(eventService).shouldHaveNoInteractions();
     }
