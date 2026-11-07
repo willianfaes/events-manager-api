@@ -27,7 +27,7 @@ import static dev.will.eventsmanager.events.entity.Category.SPORT;
 // start never calls Nominatim.
 @Component
 @Transactional
-@Profile({"local", "prod"})
+@Profile({"local", "docker", "prod"})
 class DataSeeder implements CommandLineRunner {
 
     private record DemoEvent(String name, Category category, String description, int capacity, int daysAhead,
