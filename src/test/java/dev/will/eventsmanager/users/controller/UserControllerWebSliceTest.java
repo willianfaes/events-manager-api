@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.users.controller;
 
+import dev.will.eventsmanager.auth.config.RestAccessDeniedHandler;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.PageResponse;
@@ -49,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Who may call these routes (401 without a token) is tested once, for every route, in SecurityAccessRulesWebSliceTest;
 // the tests here assume a signed-in user and cover what each route does.
 @WebMvcTest(UserController.class)
-@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class})
+@Import({SecurityConfig.class, RestAuthenticationEntryPoint.class, RestAccessDeniedHandler.class})
 class UserControllerWebSliceTest {
 
     private static final String PROFILE_JSON = """

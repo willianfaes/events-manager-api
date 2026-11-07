@@ -17,12 +17,14 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI openApi(@Value("${app.cognito.hosted-ui-url:}") String hostedUiUrl) {
         Components components = new Components().addSecuritySchemes("bearerAuth", new SecurityScheme()
+                .description("A Cognito access token obtained elsewhere, e.g. with the AWS CLI (see RUNNING.md).")
                 .type(SecurityScheme.Type.HTTP)
                 .scheme("bearer")
                 .bearerFormat("JWT"));
 
         if (!hostedUiUrl.isBlank()) {
             components.addSecuritySchemes("cognito", new SecurityScheme()
+                    .description("Log in on the Cognito hosted page.")
                     .type(SecurityScheme.Type.OAUTH2)
                     .flows(new OAuthFlows().authorizationCode(new OAuthFlow()
                             .authorizationUrl(hostedUiUrl + "/oauth2/authorize")

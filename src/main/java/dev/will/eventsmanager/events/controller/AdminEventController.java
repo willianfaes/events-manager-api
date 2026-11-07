@@ -37,7 +37,7 @@ import java.net.URI;
 @RequestMapping("/admin/events")
 @PreAuthorize("hasRole('ADMIN')")
 @Authenticated
-@Tag(name = "Admin", description = "Routes restricted to ROLE_ADMIN")
+@Tag(name = "Admin", description = "Admin only. The demo account is not an admin, so these routes answer 403.")
 public class AdminEventController {
 
     private final EventService eventService;
