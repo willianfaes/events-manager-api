@@ -1,15 +1,16 @@
-# Two values need setting here — url/username are already
+# Works as it is with the values in .env.example. url/username are already
 # correct for local (see application.properties) and don't need to
 # be duplicated. Keep this password in sync with .env's DB_PASSWORD.
 spring.datasource.password=changeme
 
-# Issuer of the Cognito user pool: `terraform output cognito_issuer_uri` in infra/ (a public URL, not a secret).
-spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
-# Optional, for the login button in Swagger UI: `terraform output cognito_hosted_ui_url` and `cognito_client_id`.
-app.cognito.hosted-ui-url=https://<domain>.auth.<region>.amazoncognito.com
-springdoc.swagger-ui.oauth.client-id=<client-id>
+# The project's Cognito user pool. These are public values, not secrets: `terraform output` in infra/ prints the
+# same ones. Replace them only if you run your own pool.
+spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_3VrOILR4Y
+# Optional, for the login button in Swagger UI
+app.cognito.hosted-ui-url=https://events-manager-164106395660.auth.eu-north-1.amazoncognito.com
+springdoc.swagger-ui.oauth.client-id=v4gdb6t181545k46nd74lpi9t
 # Optional, gives the demo user a profile with coordinates: `terraform output demo_user_sub` (empty skips it).
-app.demo.user-sub=
+app.demo.user-sub=903ce90c-40e1-7076-a74b-f54e6502b55e
 
 # Optional, prints every SQL statement (off by default: the outbox relay queries the database every second).
 #spring.jpa.show-sql=true
