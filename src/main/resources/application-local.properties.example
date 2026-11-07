@@ -10,7 +10,7 @@ spring.security.oauth2.resourceserver.jwt.issuer-uri=https://cognito-idp.eu-nort
 app.cognito.hosted-ui-url=https://events-manager-164106395660.auth.eu-north-1.amazoncognito.com
 springdoc.swagger-ui.oauth.client-id=v4gdb6t181545k46nd74lpi9t
 # Optional, gives the demo user a profile with coordinates: `terraform output demo_user_sub` (empty skips it).
-app.demo.user-sub=
+app.demo.user-sub=903ce90c-40e1-7076-a74b-f54e6502b55e
 
 # Optional, prints every SQL statement (off by default: the outbox relay queries the database every second).
 #spring.jpa.show-sql=true

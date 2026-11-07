@@ -110,6 +110,7 @@ services:
       COGNITO_ISSUER_URI: ${COGNITO_ISSUER_URI}
       COGNITO_HOSTED_UI_URL: ${COGNITO_HOSTED_UI_URL:-}
       COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      DEMO_USER_SUB: ${DEMO_USER_SUB:-}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health | grep -q UP"]
       interval: 10s
