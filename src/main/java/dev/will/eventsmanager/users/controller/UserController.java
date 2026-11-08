@@ -84,6 +84,8 @@ public class UserController {
     @ApiResponse(responseCode = "200", description = "The profile has been updated")
     @ApiResponse(responseCode = "400", description = "Invalid body",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    @ApiResponse(responseCode = "403", description = "The profile is the public demo one, which is read-only",
+            content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     @ApiResponse(responseCode = "404", description = "The user has no profile yet; create it with POST /users/me",
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     public ResponseEntity<ProfileResponse> updateProfile(
