@@ -1,13 +1,15 @@
 package dev.will.eventsmanager.users.service;
 
+import dev.will.eventsmanager.common.exception.DemoProfileReadOnlyException;
 import dev.will.eventsmanager.common.geocoding.Coordinates;
 import dev.will.eventsmanager.common.geocoding.Geocoder;
 import dev.will.eventsmanager.users.dto.request.ProfileRequest;
 import dev.will.eventsmanager.users.dto.request.UserAddressRequest;
 import dev.will.eventsmanager.users.dto.response.ProfileResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -15,6 +17,7 @@ import java.util.Optional;
 
 import static dev.will.eventsmanager.TestFixtures.USER_SUB;
 import static org.assertj.core.api.BDDAssertions.then;
+import static org.assertj.core.api.BDDAssertions.thenThrownBy;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,14 +30,20 @@ class UserGeocodingCoordinatorTest {
             new UserAddressRequest("Via Dante 1", "Apt 4", "Milano", "Lombardia", "20121", "IT"));
     private static final ProfileResponse EXPECTED = new ProfileResponse("Demo User", 30, null);
 
+    private static final String DEMO_SUB = "demo-user-sub";
+
     @Mock
     Geocoder geocoder;
 
     @Mock
     UserService userService;
 
-    @InjectMocks
     UserGeocodingCoordinator coordinator;
+
+    @BeforeEach
+    void setUp() {
+        coordinator = new UserGeocodingCoordinator(geocoder, userService, DEMO_SUB);
+    }
 
     @Test
     void createProfile_geocodesOnlyTheAreaAndPassesTheCoordinatesToTheService() {
@@ -66,5 +75,24 @@ class UserGeocodingCoordinatorTest {
         given(userService.updateProfile(USER_SUB, REQUEST, null)).willReturn(EXPECTED);
 
         then(coordinator.updateProfile(USER_SUB, REQUEST)).isEqualTo(EXPECTED);
+    }
+
+    // The demo password is public, so the shared profile must stay as the seeder created it.
+    @Test
+    void updateProfile_whenTheSubIsTheDemoUser_refusesBeforeGeocodingOrSaving() {
+        thenThrownBy(() -> coordinator.updateProfile(DEMO_SUB, REQUEST))
+                .isInstanceOf(DemoProfileReadOnlyException.class);
+
+        BDDMockito.then(geocoder).shouldHaveNoInteractions();
+        BDDMockito.then(userService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    void updateProfile_whenNoDemoUserIsConfigured_updatesAnyProfile() {
+        coordinator = new UserGeocodingCoordinator(geocoder, userService, "");
+        given(geocoder.locate(AREA)).willReturn(Optional.of(COORDINATES));
+        given(userService.updateProfile(DEMO_SUB, REQUEST, COORDINATES)).willReturn(EXPECTED);
+
+        then(coordinator.updateProfile(DEMO_SUB, REQUEST)).isEqualTo(EXPECTED);
     }
 }
