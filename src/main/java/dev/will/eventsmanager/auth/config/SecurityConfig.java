@@ -1,5 +1,6 @@
 package dev.will.eventsmanager.auth.config;
 
+import dev.will.eventsmanager.auth.security.CognitoAccessTokenValidator;
 import dev.will.eventsmanager.auth.security.CognitoJwtAuthenticationConverter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
@@ -10,6 +11,8 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration // This tells Spring "hey, this class has a configuration Bean!".
@@ -47,5 +50,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
                         .accessDeniedHandler(restAccessDeniedHandler))
                 .build();
+    }
+
+    // Spring Boot adds every OAuth2TokenValidator<Jwt> bean to the default checks of the decoder it builds from
+    // the issuer-uri, so the decoder stays auto-configured.
+    @Bean
+    public OAuth2TokenValidator<Jwt> cognitoAccessTokenValidator() {
+        return new CognitoAccessTokenValidator();
     }
 }
