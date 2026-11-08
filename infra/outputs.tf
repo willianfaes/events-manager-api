@@ -33,6 +33,11 @@ output "cognito_client_id" {
   value       = aws_cognito_user_pool_client.swagger.id
 }
 
+output "load_test_client_id" {
+  description = "Id of the k6 app client (LOAD_TEST_CLIENT_ID in .env); null while load_test_password is not set"
+  value       = one(aws_cognito_user_pool_client.load_test[*].id)
+}
+
 output "cognito_hosted_ui_url" {
   description = "Base address of the hosted login page"
   value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.region}.amazoncognito.com"

@@ -24,21 +24,25 @@ are created by an admin and marked as verified.
 
 - Demo user: `demo@example.com` / `Demo1234!` (group `USER`). The password is public on purpose.
 - Demo admin: `admin-demo@example.com`, only created when `demo_admin_password` is set in `terraform.tfvars`.
-- Load-test users for k6: `load-test-user-1@example.com` to `load-test-user-200@example.com` (group `USER`), only
-  created when `load_test_password` is set in `terraform.tfvars`. Put the same value in `LOAD_TEST_PASSWORD` in `.env`.
-  The pool policy applies: at least 8 characters with lowercase, uppercase, a number and a symbol. Create only them
-  (a plain `apply` also brings up the EC2 stack):
+- Load-test users for k6: `load-test-user-1@example.com` to `load-test-user-200@example.com` (group `USER`), plus
+  the `load-test` app client they sign in through, only created when `load_test_password` is set in
+  `terraform.tfvars`. Put the same value in `LOAD_TEST_PASSWORD` in `.env`, and `terraform output load_test_client_id`
+  in `LOAD_TEST_CLIENT_ID`. The pool policy applies: at least 8 characters with lowercase, uppercase, a number and a
+  symbol. Create only them (a plain `apply` also brings up the EC2 stack):
 
-      terraform apply -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test
+      terraform apply -target=aws_cognito_user_pool_client.load_test -target=aws_cognito_user.load_test -target=aws_cognito_user_in_group.load_test
+
+  That client accepts a password sent straight to the Cognito API, so with its id anyone could sign in as the demo
+  user and delete it. After the session, remove `load_test_password` from `terraform.tfvars` and run the same command
+  again: it removes the client and the 200 users.
 - The client accepts two callbacks: `http://localhost:8080/swagger-ui/oauth2-redirect.html` and
   `https://events.<domain_name>/swagger-ui/oauth2-redirect.html` (Cognito requires HTTPS for any host but localhost).
   The pool is kept between sessions, so a change to the list needs
   `terraform apply -target=aws_cognito_user_pool_client.swagger`.
 
-Get a token without a browser:
-
-    aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id <cognito_client_id> \
-      --auth-parameters USERNAME=demo@example.com,PASSWORD='Demo1234!'
+The Swagger client signs in only through the hosted page: a password sent straight to the Cognito API returns a token
+that can delete the user or change its password, and the demo password is public. To get a token for `curl`, log in
+on Swagger UI, run any request and copy the `Authorization` header from the curl command it shows.
 
 ## CI credentials
 

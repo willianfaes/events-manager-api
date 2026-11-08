@@ -187,7 +187,7 @@ services:
       K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
       K6_PROMETHEUS_RW_TREND_STATS: avg,med,p(95),p(99)
       COGNITO_ISSUER_URI: ${COGNITO_ISSUER_URI}
-      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      LOAD_TEST_CLIENT_ID: ${LOAD_TEST_CLIENT_ID:-}
       LOAD_TEST_PASSWORD: ${LOAD_TEST_PASSWORD:-}
     volumes:
       - ./load-test/k6:/scripts:ro

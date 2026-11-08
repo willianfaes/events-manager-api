@@ -52,8 +52,24 @@ resource "aws_cognito_user_pool_client" "swagger" {
     "https://${local.api_domain}/swagger-ui/oauth2-redirect.html",
   ]
 
-  # USER_PASSWORD_AUTH lets the AWS CLI get a token without a browser (to check the groups claim).
-  explicit_auth_flows           = ["ALLOW_USER_SRP_AUTH", "ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+  # Only the hosted login page signs in here. A password sent straight to the Cognito API returns a token with the
+  # aws.cognito.signin.user.admin scope, which can delete the demo user or change its password, and both the client
+  # id and the demo password are public. The list is explicit because an empty one means Cognito's default flows,
+  # SRP included.
+  explicit_auth_flows           = ["ALLOW_REFRESH_TOKEN_AUTH"]
+  prevent_user_existence_errors = "ENABLED"
+}
+
+# Direct password sign-in for the k6 load test, which logs 200 users in without a browser. It exists only while
+# load_test_password is set: anyone with its id could sign in as the demo user too, so it is removed after a session.
+resource "aws_cognito_user_pool_client" "load_test" {
+  count = local.load_test_users > 0 ? 1 : 0
+
+  name         = "${var.name}-load-test"
+  user_pool_id = aws_cognito_user_pool.main.id
+
+  generate_secret               = false
+  explicit_auth_flows           = ["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
   prevent_user_existence_errors = "ENABLED"
 }
 
