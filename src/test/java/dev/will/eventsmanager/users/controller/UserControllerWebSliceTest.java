@@ -4,6 +4,7 @@ import dev.will.eventsmanager.auth.config.RestAccessDeniedHandler;
 import dev.will.eventsmanager.auth.config.RestAuthenticationEntryPoint;
 import dev.will.eventsmanager.auth.config.SecurityConfig;
 import dev.will.eventsmanager.common.PageResponse;
+import dev.will.eventsmanager.common.exception.DemoProfileReadOnlyException;
 import dev.will.eventsmanager.common.exception.ProfileAlreadyExistsException;
 import dev.will.eventsmanager.common.exception.ResourceNotFoundException;
 import dev.will.eventsmanager.common.pagination.RegistrationSort;
@@ -304,5 +305,18 @@ class UserControllerWebSliceTest {
                         .with(authenticatedUser()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    @DisplayName("PUT /users/me - should return 403 when the profile is the public demo one")
+    void updateProfile_should_return_forbidden_for_the_demo_profile() throws Exception {
+        given(userGeocodingCoordinator.updateProfile(USER_SUB, PROFILE_REQUEST))
+                .willThrow(new DemoProfileReadOnlyException());
+
+        mockMvc.perform(put("/users/me").contentType(MediaType.APPLICATION_JSON).content(PROFILE_JSON)
+                        .with(authenticatedUser()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").value("The demo profile is read-only"));
     }
 }

@@ -7,7 +7,7 @@ const BASE = __ENV.BASE_URL || 'http://events-manager:8080'; // NOSONAR: interna
 const USERS = 200;
 // The load-test users are created in the Cognito pool by infra/cognito.tf (load_test_password).
 const ISSUER = __ENV.COGNITO_ISSUER_URI;
-const CLIENT_ID = __ENV.COGNITO_CLIENT_ID;
+const CLIENT_ID = __ENV.LOAD_TEST_CLIENT_ID; // the load-test app client, the only one that accepts a password
 const PASSWORD = __ENV.LOAD_TEST_PASSWORD;
 const LIST_SIZE = 20;
 const LIST_PAGES = 50;
@@ -78,7 +78,7 @@ function cognitoLogin(n, tags) {
 
 export function setup() {
   if (!ISSUER || !CLIENT_ID || !PASSWORD) {
-    fail('set COGNITO_ISSUER_URI, COGNITO_CLIENT_ID and LOAD_TEST_PASSWORD in .env');
+    fail('set COGNITO_ISSUER_URI, LOAD_TEST_CLIENT_ID and LOAD_TEST_PASSWORD in .env');
   }
   const setupTag = (name) => ({ phase: 'setup', name: `setup: ${name}` });
   const tokens = [];
