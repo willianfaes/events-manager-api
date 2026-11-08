@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# The jobs only read the repository. Declared here so the token stays read-only whatever the repository setting says.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     name: Build and test
@@ -63,8 +67,6 @@ jobs:
     concurrency:
       group: deploy
       cancel-in-progress: false
-    permissions:
-      contents: read
     env:
       AWS_REGION: eu-north-1
       IMAGE_REPOSITORY: events-manager-api
