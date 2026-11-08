@@ -28,7 +28,10 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
 
+      # Testcontainers pulls its images from Docker Hub, which rate limits anonymous pulls. A pull request from a fork
+      # gets no secrets, so it skips the login and pulls anonymously instead of failing here.
       - name: Log in to Docker Hub
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
