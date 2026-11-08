@@ -205,11 +205,10 @@ public class EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event", eventId));
 
-        EventRegistration registration = eventRegistrationsRepository
-                .findByUserIdAndEventId(user.getId(), event.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Registration", eventId));
-
-        eventRegistrationsRepository.delete(registration);
+        // No read before the update: two concurrent cancels would both see the active registration.
+        if (eventRegistrationsRepository.cancelActive(user.getId(), event.getId()) == 0) {
+            throw new ResourceNotFoundException("Registration", eventId);
+        }
         registrationOutbox.recordCancelled(event.getId(), externalId);
     }
 }
