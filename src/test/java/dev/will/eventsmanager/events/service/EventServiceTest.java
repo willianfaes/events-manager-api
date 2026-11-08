@@ -50,6 +50,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willAnswer;
@@ -360,15 +361,13 @@ class EventServiceTest {
         User user = validUser();
         user.setId(1L);
         Event event = Event.builder().id(eventId).build();
-        EventRegistration registration = EventRegistration.builder().user(user).event(event).build();
 
         given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
-        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.of(registration));
+        given(eventRegistrationsRepository.cancelActive(1L, eventId)).willReturn(1);
 
         eventService.unregisterUserFromEvent(eventId, USER_SUB);
 
-        then(eventRegistrationsRepository).should().delete(registration);
         then(registrationOutbox).should().recordCancelled(eventId, USER_SUB);
     }
 
@@ -385,7 +384,7 @@ class EventServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Event");
 
-        then(eventRegistrationsRepository).should(never()).delete(any());
+        then(eventRegistrationsRepository).should(never()).cancelActive(anyLong(), anyLong());
     }
 
     @Test
@@ -397,13 +396,13 @@ class EventServiceTest {
 
         given(userRepository.findByExternalId(USER_SUB)).willReturn(Optional.of(user));
         given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
-        given(eventRegistrationsRepository.findByUserIdAndEventId(1L, eventId)).willReturn(Optional.empty());
+        given(eventRegistrationsRepository.cancelActive(1L, eventId)).willReturn(0);
 
         assertThatThrownBy(() -> eventService.unregisterUserFromEvent(eventId, USER_SUB))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Registration");
 
-        then(eventRegistrationsRepository).should(never()).delete(any());
+        then(registrationOutbox).should(never()).recordCancelled(anyLong(), anyString());
     }
 
     @Test

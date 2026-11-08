@@ -4,6 +4,7 @@ import dev.will.eventsmanager.events.entity.EventRegistration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,6 +29,14 @@ public interface EventRegistrationsRepository extends JpaRepository<EventRegistr
             nativeQuery = true)
     Optional<EventRegistration> findByUserIdAndEventIdIncludeDeleted(@Param("userId") Long userId,
                                                                      @Param("eventId") Long eventId);
+
+    // Cancels in one statement, so concurrent cancels cannot both succeed: the database lets one UPDATE change the row
+    // and the others then match no active registration. Returns the number of rows changed (0 or 1).
+    @Modifying
+    @Query(value = "UPDATE event_registrations SET is_deleted = true "
+            + "WHERE user_id = :userId AND event_id = :eventId AND is_deleted = false",
+            nativeQuery = true)
+    int cancelActive(@Param("userId") Long userId, @Param("eventId") Long eventId);
 
     @Query(value = "SELECT r FROM EventRegistration r JOIN FETCH r.event e JOIN FETCH e.address WHERE r.user.externalId = :externalId",
             countQuery = "SELECT COUNT(r) FROM EventRegistration r WHERE r.user.externalId = :externalId")

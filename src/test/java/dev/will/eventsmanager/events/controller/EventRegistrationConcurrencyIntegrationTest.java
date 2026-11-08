@@ -114,6 +114,26 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
         then(active).isEqualTo(registerStatus == 201 ? 1 : 0);
     }
 
+    @RepeatedTest(5)
+    @DisplayName("DELETE /events/{eventId}/registrations - should cancel only once when the same user cancels 5 times at the same time")
+    void cancel_whenSameUserCancelsConcurrently_cancelsOnlyOnce() throws Exception {
+        Event event = saveEventWithOneSpot();
+        Long eventId = event.getId();
+        User user = saveUsers(1).getFirst();
+        registrationsRepository.save(EventRegistration.builder().user(user).event(event).build());
+
+        // Five requests instead of two widen the window in which they all read the active registration.
+        List<Callable<Integer>> requests = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            requests.add(() -> cancel(user, eventId));
+        }
+        List<Integer> statuses = runConcurrently(requests);
+
+        then(statuses).filteredOn(status -> status == 204).hasSize(1);
+        then(statuses).filteredOn(status -> status == 404).hasSize(4);
+        then(cancelledMessagesFor(eventId)).isEqualTo(1);
+    }
+
     private Event saveEventWithOneSpot() {
         EventAddress address = EventAddress.builder()
                 .street("123 Main St")
@@ -173,6 +193,12 @@ class EventRegistrationConcurrencyIntegrationTest extends AbstractIntegrationTes
     private int cancel(User user, Long eventId) throws Exception {
         return mockMvc.perform(delete("/events/{eventId}/registrations", eventId).with(asUser(user)))
                 .andReturn().getResponse().getStatus();
+    }
+
+    private Integer cancelledMessagesFor(Long eventId) {
+        return jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM outbox_messages WHERE message_key = ? AND type = 'REGISTRATION_CANCELLED'",
+                Integer.class, eventId.toString());
     }
 
     private RequestPostProcessor asUser(User user) {
