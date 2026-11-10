@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
@@ -37,6 +38,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/users")
 @Authenticated
+@Tag(name = "Users", description = "The signed-in user's profile and registrations")
 public class UserController {
 
     private final UserService userService;
@@ -96,8 +98,8 @@ public class UserController {
     }
 
     @GetMapping("/me/registrations")
-    @Operation(summary = "Get user registered events")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved user registered events")
+    @Operation(summary = "Get my registrations")
+    @ApiResponse(responseCode = "200", description = "The active registrations of the authenticated user")
     public ResponseEntity<PageResponse<MyRegistrationResponse>> getUserRegisteredEvents(
             Principal principal,
             @RequestParam(defaultValue = "0") int page,
