@@ -2,6 +2,7 @@ package dev.will.eventsmanager.auth.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.OAuthFlow;
 import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
@@ -34,6 +35,12 @@ public class OpenApiConfig {
                                     .addString("email", "E-mail address")
                                     .addString("profile", "Basic profile")))));
         }
-        return new OpenAPI().components(components);
+        Info info = new Info()
+                .title("Events Manager API")
+                .description("Event registration API with capacity limits: event listing, registration and "
+                        + "cancellation, attendee lists and user profiles. Requests are authenticated with "
+                        + "AWS Cognito access tokens.")
+                .version("1.0.0");
+        return new OpenAPI().info(info).components(components);
     }
 }
