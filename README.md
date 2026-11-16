@@ -16,6 +16,15 @@ A Spring Boot API for event sign-ups. Admins publish events with a fixed number 
 
 Everything runs on one EC2 host on purpose, to keep the demo inside the free plan; [Why one EC2](ARCHITECTURE.md#why-one-ec2) says what that costs and what would change first. The whole AWS setup is Terraform in `infra/`, so after a teardown the stack comes back with `terraform apply` and one pipeline run. How each part works is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
+Inside the host, a registration reaches Kafka through a transactional outbox:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/registration-messaging-dark.svg">
+  <img alt="Transactional outbox, step by step: a registration and its outbox message commit in one PostgreSQL transaction, a relay sends the message to Kafka and marks it sent after the ack, and two consumer groups of the notification service read it" src="docs/diagrams/registration-messaging.svg">
+</picture>
+
+The failure cases and the reasons are in [How a registration reaches Kafka](ARCHITECTURE.md#how-a-registration-reaches-kafka).
+
 ## How it was built
 
 - **Planned on a board.** The work was planned as issues on the [project board](https://github.com/users/willianfaes/projects/1) and delivered as pull requests: 85 issues done, 12 closed as not planned and 111 pull requests merged (November 2026).
