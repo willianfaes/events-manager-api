@@ -212,6 +212,11 @@ On PowerShell, use `Get-Content load-test/seed.sql | docker compose exec -T db p
 
 To measure without the cache, set `CACHE_TYPE=none` in `.env`, not only in the shell: `docker compose run k6` recreates `events-manager` with the current environment, so a value exported for one command is lost on the next.
 
+The numbers in the README came from one discarded warm-up run, then 3 runs with the cache and 3 without, taking the median of the server latency per route in Prometheus. `GET /events/{id}` is never cached, so it works as the control. After the runs without the cache, `cache_gets_total` must not exist.
+
+- **Recreated users:** they get new Cognito `sub`s, so the race event's 50 spots stay taken by the old profiles and the race ends with no `201`. Free the spots before the run: `UPDATE event_registrations SET is_deleted = true WHERE is_deleted = false AND event_id = (SELECT id FROM events WHERE name = 'load-test-race');`
+- **A `$` in the password:** Compose reads it as a variable in `.env`. Wrap the value in single quotes.
+
 ## Reference
 
 ### Environment variables
