@@ -184,9 +184,9 @@ Five services share one host, so each container gets a memory limit. If one of t
 I didn't guess the numbers, I measured them:
 
 - **Same setup as production:** the full stack ran locally with the same images, each JVM capped as if it were on the t3.medium.
-- **Real load:** the k6 test, with 200 users racing for 50 spots plus 50 listings per second for 2 minutes.
+- **Real load:** the k6 test, with 200 users racing for 50 spots plus 50 browsing iterations per second (a listing and an event each) for 2 minutes.
 - **The rule:** each limit is about 1.4 times the peak the service reached, and the JVM heap gets about 60% of it (the rest is threads and native memory). Kafka's default heap of 1 GB was more than it needed, so it went down to 512 MB.
-- **The proof:** I ran the test again with the limits on. Nothing was killed, every message reached the consumer, and the whole stack peaked at 1.6 GB of the host's 3.8 GB.
+- **The proof:** I ran the test again with the limits on. Nothing was killed, every message reached the consumer, and the whole stack stayed under 2 GB of the host's 3.8 GB.
 
 ## Testing strategy
 
