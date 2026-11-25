@@ -47,7 +47,24 @@ The failure cases and the reasons are in [How a registration reaches Kafka](ARCH
 | Metrics, dashboard and alert (Prometheus and Grafana)                        | Dashboard provisioned from the repository                                                                           |
 | Deploy to AWS from every merge to `main`                                     | CI/CD workflow, with the image tagged by the commit SHA                                                             |
 
-<!-- Numbers, one line: k6 race 50/150, browse p95 with and without the cache, coverage. Values pending (formal k6 run). Sonar badges when the repository is public. -->
+## Numbers
+
+Measured with k6 on my machine (i5-7400, Docker Desktop), the whole stack in containers, November 2026. Latency is the server's, median of 3 runs after a discarded warm-up:
+
+| What                                                        | Without the cache | With the cache |
+|-------------------------------------------------------------|-------------------|----------------|
+| Listing (`GET /events`), p50 / p95                          | 6.5 / 21.6 ms     | 2.2 / 12.1 ms  |
+| Event details (`GET /events/{id}`, never cached), p50 / p95 | 2.7 / 12.3 ms     | 2.7 / 13.6 ms  |
+
+- **The cache cuts the listing median about three times.** The details route, which is never cached, stays the same, so the gain comes from the cache and not from the machine. These numbers compare two versions on one machine; they are not a capacity figure.
+- **The race holds:** 200 users, 50 spots, exactly 50 `201` and 150 `409` in every run.
+- **The stack fits the server:** with the production memory limits and the same load, the whole stack stayed under 2 GB of the host's 3.8 GB, and no container was killed or restarted.
+
+![Grafana dashboard during one cached k6 run: p95 latency per route on the server, p95 and p99 as k6 sees them, and the listing cache hit ratio rising to about 96%](docs/images/grafana-load-test.jpg)
+
+One cached run in Grafana; the comparison is the table above. The registration line near 1 s is the race: 200 requests waiting in line for the lock on the same event. How to run it is in [RUNNING.md](RUNNING.md#load-test-k6).
+
+<!-- Sonar badges when the repository is public. -->
 
 ## What went wrong along the way
 
