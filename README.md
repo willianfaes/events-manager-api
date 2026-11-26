@@ -1,5 +1,7 @@
 # Events Manager API
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=willianfaes_events-manager-api&metric=alert_status)](https://sonarcloud.io/summary/overall?id=willianfaes_events-manager-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=willianfaes_events-manager-api&metric=coverage)](https://sonarcloud.io/summary/overall?id=willianfaes_events-manager-api)
+
 A Spring Boot API for event sign-ups. Admins publish events with a fixed number of spots; users sign in through AWS Cognito, find events near them and register, and the API keeps every event within its capacity even when many people register in the same second.
 
 *My intention with this project is to practise what a backend needs in production, not only what makes it run: tests that prove the rules, numbers I can reproduce, decisions I can explain, and a real deploy I operate myself.*
@@ -7,8 +9,6 @@ A Spring Boot API for event sign-ups. Admins publish events with a fixed number 
 **Live demo:** [Swagger UI](https://events.williansoares.dev/swagger-ui.html). Click **Authorize** and sign in with `demo@example.com` / `Demo1234!` (a public demo account with no admin rights), or create your own account on the login page.
 
 [Live demo](https://events.williansoares.dev/swagger-ui.html) · [Project board](https://github.com/users/willianfaes/projects/1) · [Architecture](ARCHITECTURE.md) · [Run locally](RUNNING.md)
-
-<!-- Hero GIF: Swagger login, register (201), then 409 when the event is full. Recorded last, with the stack live. -->
 
 ## Architecture
 
@@ -27,7 +27,7 @@ The failure cases and the reasons are in [How a registration reaches Kafka](ARCH
 
 ## How it was built
 
-- **Planned on a board.** The work was planned as issues on the [project board](https://github.com/users/willianfaes/projects/1) and delivered as pull requests: 85 issues done, 12 closed as not planned and 111 pull requests merged (November 2026).
+- **Planned on a board.** The work was planned as issues on the [project board](https://github.com/users/willianfaes/projects/1) and delivered as pull requests: 86 issues done, 10 closed as not planned and 112 pull requests merged (November 2026).
 - **The rule before the code.** An issue states its rule with Given/When/Then cases, and the tests are written first. For example, [issue #94](https://github.com/willianfaes/events-manager-api/issues/94) has the capacity rule and its cases, concurrency included; [PR #104](https://github.com/willianfaes/events-manager-api/pull/104) closes it with the tests, the reason for the lock and a green build.
 - **A readable history.** Conventional Commits, checked by a `commit-msg` hook, and squash merges, so each pull request is one commit on `main`.
 - **Every change through CI.** The whole test suite, containers included, runs on every pull request in about two minutes. A merge to `main` also runs SonarQube Cloud and deploys to AWS.
@@ -63,8 +63,6 @@ Measured with k6 on my machine (i5-7400, Docker Desktop), the whole stack in con
 ![Grafana dashboard during one cached k6 run: p95 latency per route on the server, p95 and p99 as k6 sees them, and the listing cache hit ratio rising to about 96%](docs/images/grafana-load-test.jpg)
 
 One cached run in Grafana; the comparison is the table above. The registration line near 1 s is the race: 200 requests waiting in line for the lock on the same event. How to run it is in [RUNNING.md](RUNNING.md#load-test-k6).
-
-<!-- Sonar badges when the repository is public. -->
 
 ## What went wrong along the way
 
